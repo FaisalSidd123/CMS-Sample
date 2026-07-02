@@ -38,16 +38,18 @@ export default function Navbar() {
             : 'bg-transparent py-6 text-white'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-6 md:px-12 flex justify-between items-center">
+        <div className="max-w-none w-full px-6 md:px-16 flex justify-between items-center relative">
           
           {/* Dealership Logo */}
-          <a href="#" className="flex items-center gap-1.5 font-display font-extrabold tracking-widest text-lg md:text-xl uppercase">
-            <span className={isScrolled ? 'text-charcoal' : 'text-white'}>Vanguard</span>
-            <span className="text-brand-red">Motors</span>
-          </a>
+          <div className="flex items-center">
+            <a href="#" className="flex items-center gap-1.5 font-display font-extrabold tracking-widest text-lg md:text-xl uppercase">
+              <span className={isScrolled ? 'text-charcoal' : 'text-white'}>Vanguard</span>
+              <span className="text-brand-red">Motors</span>
+            </a>
+          </div>
 
-          {/* Desktop Navigation Links */}
-          <div className="hidden md:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider">
+          {/* Desktop Navigation Links (Viewport Centralized) */}
+          <div className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider">
             {navLinks.map((link) => (
               <a
                 key={link.label}
