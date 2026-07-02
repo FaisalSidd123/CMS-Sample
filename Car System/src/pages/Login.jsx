@@ -5,7 +5,7 @@ import { Mail, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
-  const [role, setRole] = useState('client'); // 'client' or 'agent'
+  const [role, setRole] = useState('client'); // 'client' / 'agent' / 'admin'
   const [email, setEmail] = useState('alexander@vanguard.com');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,6 +19,8 @@ export default function Login() {
       setIsSubmitting(false);
       if (role === 'agent') {
         navigate('/agent');
+      } else if (role === 'admin') {
+        navigate('/admin');
       } else {
         navigate('/portal');
       }
@@ -99,14 +101,14 @@ export default function Login() {
           </div>
 
           {/* Role selector tab */}
-          <div className="flex border-b border-neutral-100 gap-6 select-none pt-2">
+          <div className="flex border-b border-neutral-100 gap-4 select-none pt-2 overflow-x-auto">
             <button
               type="button"
               onClick={() => {
                 setRole('client');
                 setEmail('alexander@vanguard.com');
               }}
-              className={`pb-2.5 text-xs font-display font-bold uppercase tracking-wider transition-colors cursor-pointer border-b-2 ${
+              className={`pb-2.5 text-xs font-display font-bold uppercase tracking-wider transition-colors cursor-pointer border-b-2 shrink-0 ${
                 role === 'client' ? 'border-brand-red text-brand-red' : 'border-transparent text-neutral-400 hover:text-charcoal'
               }`}
             >
@@ -118,11 +120,23 @@ export default function Login() {
                 setRole('agent');
                 setEmail('sarah.connor@vanguardmotors.com');
               }}
-              className={`pb-2.5 text-xs font-display font-bold uppercase tracking-wider transition-colors cursor-pointer border-b-2 ${
+              className={`pb-2.5 text-xs font-display font-bold uppercase tracking-wider transition-colors cursor-pointer border-b-2 shrink-0 ${
                 role === 'agent' ? 'border-brand-red text-brand-red' : 'border-transparent text-neutral-400 hover:text-charcoal'
               }`}
             >
               Sales Console
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setRole('admin');
+                setEmail('admin@vanguard.com');
+              }}
+              className={`pb-2.5 text-xs font-display font-bold uppercase tracking-wider transition-colors cursor-pointer border-b-2 shrink-0 ${
+                role === 'admin' ? 'border-brand-red text-brand-red' : 'border-transparent text-neutral-400 hover:text-charcoal'
+              }`}
+            >
+              Master Console
             </button>
           </div>
 

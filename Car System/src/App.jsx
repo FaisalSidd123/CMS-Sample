@@ -8,14 +8,19 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { vehicles as initialVehicles } from './data/vehicles';
 import { orders as initialOrders } from './data/orders';
 import { documents as initialDocuments } from './data/documents';
-import { customerProfile } from './data/customer';
+import { customerProfile, customerRoster as initialClients } from './data/clients';
 import { reservations as initialReservations } from './data/reservations';
 import { activityLog as initialActivities } from './data/activityLog';
+import { agentsRoster as initialAgents } from './data/agents';
+import { invoiceRequests as initialInvoices, mockAgentDocuments as initialDocs } from './data/invoiceRequests';
+import { adminAuditLog as initialAudits } from './data/adminAuditLog';
+import { transactions as initialTransactions } from './data/transactions';
 
 // Components & Shells
 import Navbar from './components/Navbar';
 import PortalShell from './components/PortalShell';
 import AgentShell from './components/AgentShell';
+import AdminShell from './components/AdminShell';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -35,6 +40,15 @@ import AgentReservations from './pages/AgentReservations';
 import AgentPipeline from './pages/AgentPipeline';
 import AgentDocuments from './pages/AgentDocuments';
 import AgentActivityLog from './pages/AgentActivityLog';
+
+// Admin Pages
+import AdminDashboard from './pages/AdminDashboard';
+import AdminInventory from './pages/AdminInventory';
+import AdminUsers from './pages/AdminUsers';
+import AdminTransactions from './pages/AdminTransactions';
+import AdminDocuments from './pages/AdminDocuments';
+import AdminReports from './pages/AdminReports';
+import AdminSystem from './pages/AdminSystem';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -158,6 +172,11 @@ export default function App() {
   const [ordersList, setOrdersList] = useState(initialOrders);
   const [reservationsList, setReservationsList] = useState(initialReservations);
   const [activitiesList, setActivitiesList] = useState(initialActivities);
+  const [clientsList, setClientsList] = useState(initialClients);
+  const [agentsList, setAgentsList] = useState(initialAgents);
+  const [invoicesList, setInvoicesList] = useState(initialInvoices);
+  const [docsList, setDocsList] = useState(initialDocs);
+  const [adminAuditList, setAdminAuditList] = useState(initialAudits);
 
   // Initialize Lenis Smooth Scrolling
   useEffect(() => {
@@ -332,6 +351,64 @@ export default function App() {
                 />
               </Routes>
             </AgentShell>
+          } 
+        />
+
+        {/* E. MASTER ADMIN PORTAL */}
+        <Route 
+          path="/admin/*" 
+          element={
+            <AdminShell>
+              <Routes>
+                <Route path="/" element={<AdminDashboard />} />
+                <Route 
+                  path="/inventory" 
+                  element={
+                    <AdminInventory 
+                      sharedVehicles={vehiclesList} 
+                      onUpdateVehicles={setVehiclesList} 
+                    />
+                  } 
+                />
+                <Route 
+                  path="/users" 
+                  element={
+                    <AdminUsers 
+                      sharedClients={clientsList} 
+                      onUpdateClients={setClientsList} 
+                      sharedAgents={agentsList} 
+                      onUpdateAgents={setAgentsList}
+                      sharedReservations={reservationsList}
+                      sharedActivities={activitiesList}
+                    />
+                  } 
+                />
+                <Route path="/transactions" element={<AdminTransactions />} />
+                <Route 
+                  path="/documents" 
+                  element={
+                    <AdminDocuments 
+                      sharedInvoices={invoicesList} 
+                      onUpdateInvoices={setInvoicesList}
+                      sharedDocs={docsList}
+                      onUpdateDocs={setDocsList}
+                      sharedAudit={adminAuditList}
+                      onUpdateAudit={setAdminAuditList}
+                    />
+                  } 
+                />
+                <Route path="/reports" element={<AdminReports />} />
+                <Route 
+                  path="/system" 
+                  element={
+                    <AdminSystem 
+                      sharedAudit={adminAuditList} 
+                      onUpdateAudit={setAdminAuditList} 
+                    />
+                  } 
+                />
+              </Routes>
+            </AdminShell>
           } 
         />
 

@@ -9,6 +9,9 @@ import { clients } from '../data/clients';
 import { reservations } from '../data/reservations';
 import { activityLog } from '../data/activityLog';
 import { invoiceRequests, mockAgentDocuments } from '../data/invoiceRequests';
+import { transactions } from '../data/transactions';
+import { adminUsers } from '../data/adminUsers';
+import { adminAuditLog } from '../data/adminAuditLog';
 
 const dataMap = {
   vehicles,
@@ -21,7 +24,10 @@ const dataMap = {
   reservations,
   activityLog,
   invoiceRequests,
-  agentDocuments: mockAgentDocuments
+  agentDocuments: mockAgentDocuments,
+  transactions,
+  adminUsers,
+  adminAuditLog
 };
 
 export function useMockData(category, id = null) {
