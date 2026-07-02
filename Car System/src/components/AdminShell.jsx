@@ -27,9 +27,7 @@ export default function AdminShell({ children }) {
     { label: 'Inventory', path: '/admin/inventory', icon: Car },
     { label: 'Customers & Agents', path: '/admin/users', icon: Users },
     { label: 'Transactions', path: '/admin/transactions', icon: DollarSign },
-    { label: 'Documents', path: '/admin/documents', icon: FolderOpen },
-    { label: 'Reports', path: '/admin/reports', icon: FileSpreadsheet },
-    { label: 'System & Roles', path: '/admin/system', icon: ShieldCheck }
+    { label: 'Documents', path: '/admin/documents', icon: FolderOpen }
   ];
 
   const getHeaderTitle = () => {

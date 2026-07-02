@@ -47,8 +47,6 @@ import AdminInventory from './pages/AdminInventory';
 import AdminUsers from './pages/AdminUsers';
 import AdminTransactions from './pages/AdminTransactions';
 import AdminDocuments from './pages/AdminDocuments';
-import AdminReports from './pages/AdminReports';
-import AdminSystem from './pages/AdminSystem';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -71,7 +69,7 @@ function Footer() {
   return (
     <footer id="contact" className="bg-[#1A1A1A] text-white pt-20 pb-8 border-t border-neutral-800">
       <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-4 gap-12 text-left mb-16">
-        
+
         {/* Column 1: Brand Logo & Description */}
         <div>
           <span className="font-display font-extrabold tracking-widest text-lg uppercase block mb-4">
@@ -202,8 +200,8 @@ export default function App() {
 
   // Handler to toggle vehicle save/wishlist
   const handleToggleSave = (vehicleId) => {
-    setSavedVehicleIds((prev) => 
-      prev.includes(vehicleId) 
+    setSavedVehicleIds((prev) =>
+      prev.includes(vehicleId)
         ? prev.filter(id => id !== vehicleId)
         : [...prev, vehicleId]
     );
@@ -212,7 +210,7 @@ export default function App() {
   // Handler to reserve a vehicle and dynamically place a hold transaction
   const handleReserveVehicle = (vehicleId) => {
     // 1. Mark vehicle status as 'reserved' in state
-    setVehiclesList((prev) => 
+    setVehiclesList((prev) =>
       prev.map(v => v.id === vehicleId ? { ...v, status: 'reserved' } : v)
     );
 
@@ -224,10 +222,10 @@ export default function App() {
       orderDate: new Date().toISOString(),
       currentStage: 'Reserved',
       stageHistory: [
-        { 
-          stage: 'Reserved', 
-          date: new Date().toISOString(), 
-          note: 'Hold deposit confirmed. VIN locked under customer workspace.' 
+        {
+          stage: 'Reserved',
+          date: new Date().toISOString(),
+          note: 'Hold deposit confirmed. VIN locked under customer workspace.'
         }
       ],
       agent: {
@@ -241,37 +239,37 @@ export default function App() {
 
   return (
     <div className="flex flex-col min-h-screen text-charcoal bg-white">
-      
+
       {/* Scroll to Top Sync Listener */}
       <ScrollToTop lenisInstance={lenis} />
 
       <Routes>
-        
+
         {/* A. PUBLIC PAGES ROUTING */}
-        <Route 
-          path="/" 
+        <Route
+          path="/"
           element={
             <>
               <Navbar />
               <main className="flex-1">
-                <LandingPage 
-                  vehicles={vehiclesList} 
+                <LandingPage
+                  vehicles={vehiclesList}
                   savedVehicleIds={savedVehicleIds}
                   onToggleSave={handleToggleSave}
                 />
               </main>
               <Footer />
             </>
-          } 
+          }
         />
 
-        <Route 
-          path="/inventory/:id" 
+        <Route
+          path="/inventory/:id"
           element={
             <>
               <Navbar />
               <main className="flex-1">
-                <VehicleDetails 
+                <VehicleDetails
                   vehicles={vehiclesList}
                   savedVehicleIds={savedVehicleIds}
                   onToggleSave={handleToggleSave}
@@ -280,12 +278,12 @@ export default function App() {
               </main>
               <Footer />
             </>
-          } 
+          }
         />
 
         {/* B. PRIVATE CUSTOMER PORTAL WORKSPACE */}
-        <Route 
-          path="/portal/*" 
+        <Route
+          path="/portal/*"
           element={
             <PortalShell>
               <Routes>
@@ -298,118 +296,109 @@ export default function App() {
                 <Route path="/profile" element={<PortalProfile />} />
               </Routes>
             </PortalShell>
-          } 
+          }
         />
 
         {/* C. AUTH ROUTING */}
-        <Route 
-          path="/login" 
-          element={<Login />} 
+        <Route
+          path="/login"
+          element={<Login />}
         />
 
         {/* D. PRIVATE SALES AGENT PORTAL */}
-        <Route 
-          path="/agent/*" 
+        <Route
+          path="/agent/*"
           element={
             <AgentShell>
               <Routes>
                 <Route path="/" element={<AgentDashboard />} />
                 <Route path="/clients" element={<AgentClients />} />
                 <Route path="/clients/:id" element={<AgentClients />} />
-                <Route 
-                  path="/reservations" 
+                <Route
+                  path="/reservations"
                   element={
-                    <AgentReservations 
-                      sharedReservations={reservationsList} 
+                    <AgentReservations
+                      sharedReservations={reservationsList}
                       onUpdateReservations={setReservationsList}
                       sharedVehicles={vehiclesList}
                       onUpdateVehicles={setVehiclesList}
                     />
-                  } 
+                  }
                 />
-                <Route 
-                  path="/reserve" 
+                <Route
+                  path="/reserve"
                   element={
-                    <AgentReservations 
-                      sharedReservations={reservationsList} 
+                    <AgentReservations
+                      sharedReservations={reservationsList}
                       onUpdateReservations={setReservationsList}
                       sharedVehicles={vehiclesList}
                       onUpdateVehicles={setVehiclesList}
                     />
-                  } 
+                  }
                 />
                 <Route path="/pipeline" element={<AgentPipeline />} />
                 <Route path="/documents" element={<AgentDocuments />} />
-                <Route 
-                  path="/activity" 
+                <Route
+                  path="/activity"
                   element={
-                    <AgentActivityLog 
+                    <AgentActivityLog
                       sharedActivities={activitiesList}
                       onUpdateActivities={setActivitiesList}
                     />
-                  } 
+                  }
                 />
               </Routes>
             </AgentShell>
-          } 
+          }
         />
 
         {/* E. MASTER ADMIN PORTAL */}
-        <Route 
-          path="/admin/*" 
+        <Route
+          path="/admin/*"
           element={
             <AdminShell>
               <Routes>
                 <Route path="/" element={<AdminDashboard />} />
-                <Route 
-                  path="/inventory" 
+                <Route
+                  path="/inventory"
                   element={
-                    <AdminInventory 
-                      sharedVehicles={vehiclesList} 
-                      onUpdateVehicles={setVehiclesList} 
+                    <AdminInventory
+                      sharedVehicles={vehiclesList}
+                      onUpdateVehicles={setVehiclesList}
                     />
-                  } 
+                  }
                 />
-                <Route 
-                  path="/users" 
+                <Route
+                  path="/users"
                   element={
-                    <AdminUsers 
-                      sharedClients={clientsList} 
-                      onUpdateClients={setClientsList} 
-                      sharedAgents={agentsList} 
+                    <AdminUsers
+                      sharedClients={clientsList}
+                      onUpdateClients={setClientsList}
+                      sharedAgents={agentsList}
                       onUpdateAgents={setAgentsList}
                       sharedReservations={reservationsList}
                       sharedActivities={activitiesList}
                     />
-                  } 
+                  }
                 />
                 <Route path="/transactions" element={<AdminTransactions />} />
-                <Route 
-                  path="/documents" 
+                <Route
+                  path="/documents"
                   element={
-                    <AdminDocuments 
-                      sharedInvoices={invoicesList} 
+                    <AdminDocuments
+                      sharedInvoices={invoicesList}
                       onUpdateInvoices={setInvoicesList}
                       sharedDocs={docsList}
                       onUpdateDocs={setDocsList}
                       sharedAudit={adminAuditList}
                       onUpdateAudit={setAdminAuditList}
                     />
-                  } 
+                  }
                 />
-                <Route path="/reports" element={<AdminReports />} />
-                <Route 
-                  path="/system" 
-                  element={
-                    <AdminSystem 
-                      sharedAudit={adminAuditList} 
-                      onUpdateAudit={setAdminAuditList} 
-                    />
-                  } 
-                />
+
               </Routes>
             </AdminShell>
-          } 
+          }
         />
 
       </Routes>
