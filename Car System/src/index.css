@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-red: #C0392B;
+  --color-brand-red-hover: #A92A1E;
+  --color-charcoal: #1A1A1A;
+  --color-light-bg: #F5F5F5;
+  --color-border-hairline: #E5E5E5;
+  
+  --font-display: "Outfit", sans-serif;
+  --font-display-condensed: "Bebas Neue", sans-serif;
+  --font-sans: "Inter", sans-serif;
+}
+
+/* Custom Base Resets */
+html {
+  background-color: #FFFFFF;
+  color: #1A1A1A;
+  scroll-behavior: initial;
+  overflow-x: hidden;
+  font-family: var(--font-sans);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-color: #FFFFFF;
+  overflow-x: hidden;
+}
+
+/* Premium Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F5F5F5;
+}
+::-webkit-scrollbar-thumb {
+  background: #D5D5D5;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C0392B;
+}
+
+/* Lenis Integration Requirements */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+/* Embla Carousel Base Classes */
+.embla {
+  overflow: hidden;
+  width: 100%;
+}
+.embla__container {
+  display: flex;
+  will-change: transform;
+}
+.embla__slide {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+
+/* Multi-card Embla */
+.embla-multi__container {
+  display: flex;
+  margin-left: -1.5rem;
+}
+.embla-multi__slide {
+  flex: 0 0 100%;
+  padding-left: 1.5rem;
+  min-width: 0;
+}
+@media (min-width: 768px) {
+  .embla-multi__slide {
+    flex: 0 0 50%;
+  }
+}
+@media (min-width: 1024px) {
+  .embla-multi__slide {
+    flex: 0 0 33.333333%;
+  }
+}
+
+/* Premium Card hover lifts */
+.premium-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E5E5;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.premium-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  border-color: #D5D5D5;
+}
