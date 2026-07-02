@@ -9,10 +9,13 @@ import { vehicles as initialVehicles } from './data/vehicles';
 import { orders as initialOrders } from './data/orders';
 import { documents as initialDocuments } from './data/documents';
 import { customerProfile } from './data/customer';
+import { reservations as initialReservations } from './data/reservations';
+import { activityLog as initialActivities } from './data/activityLog';
 
 // Components & Shells
 import Navbar from './components/Navbar';
 import PortalShell from './components/PortalShell';
+import AgentShell from './components/AgentShell';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -24,6 +27,14 @@ import PortalPurchases from './pages/PortalPurchases';
 import PortalWishlist from './pages/PortalWishlist';
 import PortalProfile from './pages/PortalProfile';
 import Login from './pages/Login';
+
+// Agent Pages
+import AgentDashboard from './pages/AgentDashboard';
+import AgentClients from './pages/AgentClients';
+import AgentReservations from './pages/AgentReservations';
+import AgentPipeline from './pages/AgentPipeline';
+import AgentDocuments from './pages/AgentDocuments';
+import AgentActivityLog from './pages/AgentActivityLog';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -145,6 +156,8 @@ export default function App() {
   const [vehiclesList, setVehiclesList] = useState(initialVehicles);
   const [savedVehicleIds, setSavedVehicleIds] = useState(customerProfile.savedVehicleIds);
   const [ordersList, setOrdersList] = useState(initialOrders);
+  const [reservationsList, setReservationsList] = useState(initialReservations);
+  const [activitiesList, setActivitiesList] = useState(initialActivities);
 
   // Initialize Lenis Smooth Scrolling
   useEffect(() => {
@@ -273,6 +286,53 @@ export default function App() {
         <Route 
           path="/login" 
           element={<Login />} 
+        />
+
+        {/* D. PRIVATE SALES AGENT PORTAL */}
+        <Route 
+          path="/agent/*" 
+          element={
+            <AgentShell>
+              <Routes>
+                <Route path="/" element={<AgentDashboard />} />
+                <Route path="/clients" element={<AgentClients />} />
+                <Route path="/clients/:id" element={<AgentClients />} />
+                <Route 
+                  path="/reservations" 
+                  element={
+                    <AgentReservations 
+                      sharedReservations={reservationsList} 
+                      onUpdateReservations={setReservationsList}
+                      sharedVehicles={vehiclesList}
+                      onUpdateVehicles={setVehiclesList}
+                    />
+                  } 
+                />
+                <Route 
+                  path="/reserve" 
+                  element={
+                    <AgentReservations 
+                      sharedReservations={reservationsList} 
+                      onUpdateReservations={setReservationsList}
+                      sharedVehicles={vehiclesList}
+                      onUpdateVehicles={setVehiclesList}
+                    />
+                  } 
+                />
+                <Route path="/pipeline" element={<AgentPipeline />} />
+                <Route path="/documents" element={<AgentDocuments />} />
+                <Route 
+                  path="/activity" 
+                  element={
+                    <AgentActivityLog 
+                      sharedActivities={activitiesList}
+                      onUpdateActivities={setActivitiesList}
+                    />
+                  } 
+                />
+              </Routes>
+            </AgentShell>
+          } 
         />
 
       </Routes>

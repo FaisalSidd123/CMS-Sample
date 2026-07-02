@@ -5,7 +5,8 @@ import { Mail, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('client'); // 'client' or 'agent'
+  const [email, setEmail] = useState('alexander@vanguard.com');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -16,7 +17,11 @@ export default function Login() {
     // Simulate authentication processing latency
     setTimeout(() => {
       setIsSubmitting(false);
-      navigate('/portal');
+      if (role === 'agent') {
+        navigate('/agent');
+      } else {
+        navigate('/portal');
+      }
     }, 800);
   };
 
@@ -78,19 +83,47 @@ export default function Login() {
           <span>Exit Catalog</span>
         </Link>
 
-        <div className="w-full max-w-sm space-y-8 text-left">
+        <div className="w-full max-w-sm space-y-6 text-left">
           
           {/* Logo & welcoming text */}
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Link to="/" className="inline-block font-display font-extrabold tracking-widest text-md uppercase text-charcoal">
               Vanguard <span className="text-brand-red">Motors</span>
             </Link>
-            <h2 className="text-xl font-display font-extrabold uppercase text-charcoal tracking-wide mt-3">
-              Client Portal Sign In
+            <h2 className="text-xl font-display font-extrabold uppercase text-charcoal tracking-wide mt-2">
+              Workspace Access
             </h2>
             <p className="text-xs text-neutral-400 font-sans">
-              Enter any credentials below to access the sandbox interface.
+              Authenticate details to enter your sandbox account.
             </p>
+          </div>
+
+          {/* Role selector tab */}
+          <div className="flex border-b border-neutral-100 gap-6 select-none pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setRole('client');
+                setEmail('alexander@vanguard.com');
+              }}
+              className={`pb-2.5 text-xs font-display font-bold uppercase tracking-wider transition-colors cursor-pointer border-b-2 ${
+                role === 'client' ? 'border-brand-red text-brand-red' : 'border-transparent text-neutral-400 hover:text-charcoal'
+              }`}
+            >
+              Client Account
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setRole('agent');
+                setEmail('sarah.connor@vanguardmotors.com');
+              }}
+              className={`pb-2.5 text-xs font-display font-bold uppercase tracking-wider transition-colors cursor-pointer border-b-2 ${
+                role === 'agent' ? 'border-brand-red text-brand-red' : 'border-transparent text-neutral-400 hover:text-charcoal'
+              }`}
+            >
+              Sales Console
+            </button>
           </div>
 
           {/* Form */}
