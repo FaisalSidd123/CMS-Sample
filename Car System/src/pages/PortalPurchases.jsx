@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMockData } from '../hooks/useMockData';
 import { TableSkeleton } from '../components/Skeletons';
-import { 
-  History, 
-  Search, 
-  ArrowUpRight, 
+import { motion, AnimatePresence } from 'framer-motion';
+
+import {
+  History,
+  Search,
+  ArrowUpRight,
   Calendar,
   X,
   Check,
@@ -26,10 +28,10 @@ export default function PortalPurchases() {
     return [...list].sort((a, b) => {
       if (sortBy === 'date-desc') return new Date(b.purchaseDate) - new Date(a.purchaseDate);
       if (sortBy === 'date-asc') return new Date(a.purchaseDate) - new Date(b.purchaseDate);
-      
+
       const priceA = parseInt(a.finalPrice.replace(/[$,]/g, '')) || 0;
       const priceB = parseInt(b.finalPrice.replace(/[$,]/g, '')) || 0;
-      
+
       if (sortBy === 'price-desc') return priceB - priceA;
       if (sortBy === 'price-asc') return priceA - priceB;
       return 0;
@@ -38,7 +40,7 @@ export default function PortalPurchases() {
 
   // Filter logic
   const filteredPurchases = handleSort(
-    purchasesList?.filter(item => 
+    purchasesList?.filter(item =>
       item.vehicleName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.id.toLowerCase().includes(searchTerm.toLowerCase())
     )
@@ -46,7 +48,7 @@ export default function PortalPurchases() {
 
   return (
     <div className="space-y-8 text-left relative">
-      
+
       {/* Header */}
       <div>
         <span className="text-[10px] font-mono text-brand-red uppercase tracking-widest block mb-1">// Ledger registry</span>
@@ -60,7 +62,7 @@ export default function PortalPurchases() {
 
       {/* Search & Sort Panel */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center bg-white border border-border-hairline p-4 shadow-xs">
-        
+
         {/* Search */}
         <div className="relative flex-1 max-w-md">
           <input
@@ -110,7 +112,7 @@ export default function PortalPurchases() {
               <tbody className="divide-y divide-border-hairline text-xs">
                 {filteredPurchases.map((purchase) => (
                   <tr key={purchase.id} className="hover:bg-neutral-50/50 transition-colors">
-                    
+
                     {/* Vehicle */}
                     <td className="py-4 px-6 font-medium text-charcoal flex items-center gap-3">
                       <div className="w-12 h-8 bg-neutral-100 rounded-sm overflow-hidden shrink-0">
@@ -173,15 +175,15 @@ export default function PortalPurchases() {
         {selectedPurchase && (
           <>
             {/* Backdrop overlay */}
-            <div 
-              className="fixed inset-0 bg-black/50 z-40" 
+            <div
+              className="fixed inset-0 bg-black/50 z-40"
               onClick={() => setSelectedPurchase(null)}
             />
 
             {/* Slide drawer container */}
             <div className="fixed top-0 right-0 w-full sm:w-[480px] h-full bg-white z-50 shadow-2xl p-8 flex flex-col justify-between overflow-y-auto">
               <div>
-                
+
                 {/* Header */}
                 <div className="flex justify-between items-center pb-4 border-b border-border-hairline mb-8">
                   <div>
@@ -190,7 +192,7 @@ export default function PortalPurchases() {
                       Purchase Summary
                     </h3>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setSelectedPurchase(null)}
                     className="text-neutral-400 hover:text-brand-red p-1 cursor-pointer"
                   >
@@ -200,7 +202,7 @@ export default function PortalPurchases() {
 
                 {/* Body Details */}
                 <div className="space-y-8 text-left">
-                  
+
                   {/* Vehicle details */}
                   <div className="flex items-center gap-4 border border-neutral-100 p-4 rounded-xs">
                     <div className="w-24 h-16 bg-neutral-100 rounded-sm overflow-hidden shrink-0">
@@ -239,10 +241,10 @@ export default function PortalPurchases() {
                     <div className="relative pl-8 flex flex-col gap-6">
                       {/* Vertical connector line */}
                       <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-brand-red" />
-                      
+
                       {selectedPurchase.stageHistory.map((history) => (
                         <div key={history.stage} className="relative flex flex-col gap-1">
-                          
+
                           {/* Point */}
                           <span className="absolute left-[-27px] top-0 w-5 h-5 rounded-full bg-brand-red text-white flex items-center justify-center border border-brand-red shadow-xs">
                             <Check className="w-3 h-3 stroke-[3]" />

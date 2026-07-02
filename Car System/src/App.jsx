@@ -23,6 +23,7 @@ import PortalDocuments from './pages/PortalDocuments';
 import PortalPurchases from './pages/PortalPurchases';
 import PortalWishlist from './pages/PortalWishlist';
 import PortalProfile from './pages/PortalProfile';
+import Login from './pages/Login';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -266,6 +267,12 @@ export default function App() {
               </Routes>
             </PortalShell>
           } 
+        />
+
+        {/* C. AUTH ROUTING */}
+        <Route 
+          path="/login" 
+          element={<Login />} 
         />
 
       </Routes>

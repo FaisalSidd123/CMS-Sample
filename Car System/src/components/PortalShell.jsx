@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, 
   Car, 

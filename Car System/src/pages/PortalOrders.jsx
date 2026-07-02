@@ -2,16 +2,17 @@ import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useMockData } from '../hooks/useMockData';
 import { CardSkeleton, DetailSkeleton } from '../components/Skeletons';
-import { 
-  Car, 
-  ArrowLeft, 
-  Check, 
-  Phone, 
-  Mail, 
-  Clock, 
+import {
+  Car,
+  ArrowLeft,
+  Check,
+  Phone,
+  Mail,
+  Clock,
   Calendar,
   AlertTriangle,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ArrowRight
 } from 'lucide-react';
 
 export default function PortalOrders() {
@@ -66,7 +67,7 @@ export default function PortalOrders() {
       <div className="space-y-8 text-left">
         {/* Back navigation */}
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => navigate('/portal/orders')}
             className="flex items-center gap-1.5 text-xs text-neutral-400 hover:text-brand-red transition-colors font-mono uppercase tracking-widest cursor-pointer"
           >
@@ -93,7 +94,7 @@ export default function PortalOrders() {
 
         {/* Detail page Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 items-start">
-          
+
           {/* Left Columns (timeline details) */}
           <div className="lg:col-span-3 space-y-8">
             <div className="bg-white border border-border-hairline p-6 shadow-xs">
@@ -105,8 +106,8 @@ export default function PortalOrders() {
               <div className="relative pl-10 flex flex-col gap-10">
                 {/* Timeline vertical bar */}
                 <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-neutral-100" />
-                <div 
-                  className="absolute left-4 top-2 w-0.5 bg-brand-red transition-all duration-700" 
+                <div
+                  className="absolute left-4 top-2 w-0.5 bg-brand-red transition-all duration-700"
                   style={{ height: `${(currentStageIndex / (stages.length - 1)) * 100}%` }}
                 />
 
@@ -114,18 +115,17 @@ export default function PortalOrders() {
                   const isCompleted = idx < currentStageIndex;
                   const isCurrent = idx === currentStageIndex;
                   const historyRecord = order.stageHistory.find(h => h.stage === stage);
-                  
+
                   return (
                     <div key={stage} className="relative flex flex-col gap-1.5">
-                      
+
                       {/* Timeline point */}
-                      <span className={`absolute left-[-35px] top-0 w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 z-10 ${
-                        isCompleted 
-                          ? 'bg-brand-red border-brand-red text-white' 
+                      <span className={`absolute left-[-35px] top-0 w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 z-10 ${isCompleted
+                          ? 'bg-brand-red border-brand-red text-white'
                           : isCurrent
                             ? 'bg-white border-brand-red text-brand-red ring-4 ring-brand-red/10 scale-105'
                             : 'bg-white border-neutral-200 text-neutral-400'
-                      }`}>
+                        }`}>
                         {isCompleted ? (
                           <Check className="w-4 h-4 stroke-[3]" />
                         ) : (
@@ -135,9 +135,8 @@ export default function PortalOrders() {
 
                       {/* Header block */}
                       <div className="flex items-center gap-3">
-                        <h4 className={`text-xs font-display font-bold uppercase tracking-wider ${
-                          isCurrent ? 'text-brand-red' : isCompleted ? 'text-charcoal' : 'text-neutral-400'
-                        }`}>
+                        <h4 className={`text-xs font-display font-bold uppercase tracking-wider ${isCurrent ? 'text-brand-red' : isCompleted ? 'text-charcoal' : 'text-neutral-400'
+                          }`}>
                           {stage}
                         </h4>
                         {historyRecord && (
@@ -148,14 +147,13 @@ export default function PortalOrders() {
                       </div>
 
                       {/* Note block */}
-                      <p className={`text-xs leading-relaxed font-sans max-w-md ${
-                        isCurrent 
-                          ? 'text-charcoal font-medium' 
-                          : isCompleted 
-                            ? 'text-neutral-500' 
+                      <p className={`text-xs leading-relaxed font-sans max-w-md ${isCurrent
+                          ? 'text-charcoal font-medium'
+                          : isCompleted
+                            ? 'text-neutral-500'
                             : 'text-neutral-300 opacity-50'
-                      }`}>
-                        {historyRecord 
+                        }`}>
+                        {historyRecord
                           ? historyRecord.note
                           : `Status awaiting preceding stages. Next scheduled checkpoint.`
                         }
@@ -171,14 +169,14 @@ export default function PortalOrders() {
 
           {/* Right Columns (vehicle details & agent card) */}
           <div className="lg:col-span-2 space-y-6">
-            
+
             {/* Vehicle Summary Panel */}
             {vehicle && (
               <div className="bg-white border border-border-hairline p-5 shadow-xs">
                 <span className="font-display font-bold text-xs uppercase tracking-wider text-charcoal mb-4 block">
                   Vehicle Allocated
                 </span>
-                
+
                 <div className="aspect-16/9 bg-light-bg rounded-xs overflow-hidden flex items-center justify-center mb-4">
                   {vehicle.thumbnailImage ? (
                     <img
@@ -219,7 +217,7 @@ export default function PortalOrders() {
               </div>
 
               <div className="flex flex-col gap-3 font-mono text-[10px] text-neutral-500 uppercase tracking-wider">
-                <a 
+                <a
                   href={`mailto:${order.agent.contact}`}
                   className="flex items-center gap-2 hover:text-brand-red transition-colors pb-2 border-b border-neutral-100"
                 >
@@ -261,8 +259,8 @@ export default function PortalOrders() {
           {ordersList.map((order) => {
             const vehicle = vehiclesList?.find(v => v.id === order.vehicleId);
             return (
-              <div 
-                key={order.id} 
+              <div
+                key={order.id}
                 className="premium-card flex flex-col justify-between bg-white border border-border-hairline p-5 h-[340px]"
               >
                 <div>
@@ -293,11 +291,10 @@ export default function PortalOrders() {
                         Filed: {new Date(order.orderDate).toLocaleDateString()}
                       </span>
                     </div>
-                    
+
                     {/* Color coded status badge */}
-                    <span className={`text-[9px] font-mono uppercase tracking-wider px-2.5 py-1 border rounded-xs shrink-0 ${
-                      getStageColorClass(order.currentStage, true)
-                    }`}>
+                    <span className={`text-[9px] font-mono uppercase tracking-wider px-2.5 py-1 border rounded-xs shrink-0 ${getStageColorClass(order.currentStage, true)
+                      }`}>
                       {order.currentStage}
                     </span>
                   </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Search, Phone } from 'lucide-react';
+import { Menu, X, Search, Phone, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -72,6 +73,15 @@ export default function Navbar() {
             }`}>
               <Search className="w-4.5 h-4.5" />
             </button>
+            <Link 
+              to="/login"
+              className={`p-1.5 transition-colors cursor-pointer flex items-center justify-center ${
+                isScrolled ? 'text-charcoal hover:text-brand-red' : 'text-white/80 hover:text-white'
+              }`}
+              title="Client Portal Dashboard"
+            >
+              <User className="w-4.5 h-4.5" />
+            </Link>
             <a
               href="#contact"
               className="bg-brand-red hover:bg-brand-red-hover text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 transition-colors duration-300"
@@ -81,7 +91,14 @@ export default function Navbar() {
           </div>
 
           {/* Mobile Menu Toggle */}
-          <div className="flex md:hidden items-center gap-4">
+          <div className="flex md:hidden items-center gap-3">
+            <Link 
+              to="/login" 
+              className={`p-1.5 transition-colors flex items-center justify-center ${isScrolled ? 'text-charcoal' : 'text-white'}`}
+              title="Client Portal"
+            >
+              <User className="w-4.5 h-4.5" />
+            </Link>
             <button className={`p-1.5 ${isScrolled ? 'text-charcoal' : 'text-white'}`}>
               <Search className="w-4.5 h-4.5" />
             </button>
