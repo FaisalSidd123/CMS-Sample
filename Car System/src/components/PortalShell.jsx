@@ -1,25 +1,26 @@
 import React, { useState } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  LayoutDashboard, 
-  Car, 
-  FileText, 
-  History, 
-  Heart, 
-  User, 
-  LogOut, 
-  Bell, 
-  Search, 
-  Menu, 
-  X 
+import {
+  LayoutDashboard,
+  Car,
+  FileText,
+  History,
+  Heart,
+  User,
+  LogOut,
+  Bell,
+  Search,
+  Menu,
+  X,
+
 } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 
 export default function PortalShell({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
-  
+
   // Notification local state
   const [notifications, setNotifications] = useState([
     { id: 1, text: 'Escrow payment verified for Mercedes-Benz GLE.', time: '2h ago', unread: true },
@@ -56,7 +57,7 @@ export default function PortalShell({ children }) {
 
   return (
     <div className="min-h-screen bg-light-bg flex flex-col md:flex-row text-charcoal">
-      
+
       {/* 1. DESKTOP SIDEBAR */}
       <aside className="hidden md:flex flex-col justify-between w-64 bg-charcoal text-white shrink-0 p-6 border-r border-neutral-800">
         <div>
@@ -75,8 +76,8 @@ export default function PortalShell({ children }) {
                 end={item.path === '/portal'}
                 className={({ isActive }) => `
                   flex items-center gap-3 px-4 py-3 text-xs font-semibold uppercase tracking-wider transition-all duration-200
-                  ${isActive 
-                    ? 'bg-brand-red text-white shadow-md' 
+                  ${isActive
+                    ? 'bg-brand-red text-white shadow-md'
                     : 'text-neutral-400 hover:text-white hover:bg-white/5'
                   }
                 `}
@@ -111,10 +112,10 @@ export default function PortalShell({ children }) {
 
       {/* 2. MAIN APP CONTENT CONTAINER */}
       <main className="flex-1 flex flex-col min-w-0 pb-20 md:pb-0">
-        
+
         {/* Top Header */}
         <header className="bg-white border-b border-border-hairline h-16 px-6 md:px-10 flex justify-between items-center relative z-30">
-          
+
           {/* Header Left Title */}
           <h1 className="font-display font-extrabold text-sm md:text-md uppercase tracking-wider text-charcoal">
             {getHeaderTitle()}
@@ -122,7 +123,7 @@ export default function PortalShell({ children }) {
 
           {/* Header Right Actions */}
           <div className="flex items-center gap-6">
-            
+
             {/* Search bar mockup */}
             <div className="relative hidden lg:block w-64">
               <input
@@ -135,7 +136,7 @@ export default function PortalShell({ children }) {
 
             {/* Notification Bell */}
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setShowNotifications(!showNotifications)}
                 className="p-1 text-neutral-500 hover:text-brand-red relative transition-colors cursor-pointer"
               >
@@ -159,25 +160,24 @@ export default function PortalShell({ children }) {
                       <div className="flex justify-between items-center pb-2 border-b border-border-hairline mb-3">
                         <span className="font-display font-bold text-xs uppercase tracking-wider text-charcoal">Notifications</span>
                         {unreadCount > 0 && (
-                          <button 
-                            onClick={markAllRead} 
+                          <button
+                            onClick={markAllRead}
                             className="text-[9px] font-mono text-brand-red uppercase tracking-wider hover:underline"
                           >
                             Mark all read
                           </button>
                         )}
                       </div>
-                      
+
                       <div className="flex flex-col gap-2.5 max-h-60 overflow-y-auto">
                         {notifications.map(n => (
-                          <div 
-                            key={n.id} 
+                          <div
+                            key={n.id}
                             onClick={() => toggleRead(n.id)}
-                            className={`p-2.5 border-l-2 transition-colors cursor-pointer flex flex-col gap-1 ${
-                              n.unread 
-                                ? 'bg-brand-red/5 border-l-brand-red' 
-                                : 'bg-transparent border-l-neutral-200 hover:bg-neutral-50'
-                            }`}
+                            className={`p-2.5 border-l-2 transition-colors cursor-pointer flex flex-col gap-1 ${n.unread
+                              ? 'bg-brand-red/5 border-l-brand-red'
+                              : 'bg-transparent border-l-neutral-200 hover:bg-neutral-50'
+                              }`}
                           >
                             <span className={`text-[11px] leading-relaxed ${n.unread ? 'text-charcoal font-semibold' : 'text-neutral-500'}`}>
                               {n.text}
