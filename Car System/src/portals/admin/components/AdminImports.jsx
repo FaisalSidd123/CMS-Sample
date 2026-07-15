@@ -40,9 +40,9 @@ export default function AdminImports() {
   const handleSimulateDrop = (e) => {
     e.preventDefault();
     setBulkUploadedData([
-      { make: 'Audi', model: 'R8 Coupe', year: 2022, price: 145000, mileage: 8400, bodyType: 'Coupe', status: 'available' },
-      { make: 'Porsche', model: 'Taycan 4S', year: 2023, price: 105000, mileage: 4200, bodyType: 'Coupe', status: 'available' },
-      { make: 'BMW', model: 'M4 Competition', year: 2021, price: 74000, mileage: 12900, bodyType: 'Coupe', status: 'available' }
+      { make: 'Audi', model: 'R8 Coupe', year: 2022, price: 145000, mileage: 8400, bodyType: 'Coupe', color: 'Ara Blue', location: 'Miami Depot', status: 'available' },
+      { make: 'Porsche', model: 'Taycan 4S', year: 2023, price: 105000, mileage: 4200, bodyType: 'Coupe', color: 'Frozen Blue', location: 'Vanguard HQ', status: 'available' },
+      { make: 'BMW', model: 'M4 Competition', year: 2021, price: 74000, mileage: 12900, bodyType: 'Coupe', color: 'Alpine White', location: 'Jersey Storage', status: 'available' }
     ]);
     triggerToast(`CSV sheet parsed. Previewing 3 records.`);
   };
@@ -50,24 +50,56 @@ export default function AdminImports() {
   const handleConfirmImport = () => {
     if (!bulkUploadedData) return;
 
-    // Trigger log entry in DB
-    fetch('http://localhost:5000/api/imports', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        filename: 'bulk_inventory_import_2026.csv',
-        row_count: bulkUploadedData.length,
-        status: 'success',
-        imported_by: 'admin@vanguard.com'
+    // 1. Post vehicles to database
+    const vehiclePromises = bulkUploadedData.map(car => {
+      return fetch('http://localhost:5000/api/vehicles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          make: car.make,
+          model: car.model,
+          year: car.year,
+          price: car.price,
+          mileage: car.mileage,
+          bodyType: car.bodyType,
+          color: car.color,
+          location: car.location,
+          status: car.status,
+          specs: ['Verified Registry', 'Mechanical Clean'],
+          conditionNotes: 'Bulk spreadsheet imports checked.',
+          thumbnailImage: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=600&q=80',
+          images: ['https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=1200&q=80']
+        })
+      }).then(r => r.json());
+    });
+
+    // 2. Post import log audit to database
+    Promise.all(vehiclePromises)
+      .then(results => {
+        const successes = results.filter(r => r.success).length;
+        
+        fetch('http://localhost:5000/api/imports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filename: 'bulk_inventory_import_2026.csv',
+            row_count: successes,
+            status: 'success',
+            imported_by: 'admin@vanguard.com'
+          })
+        })
+          .then(res => res.json())
+          .then(json => {
+            if (json.success) {
+              triggerToast(`Successfully imported ${successes} vehicles to registry database!`);
+              setBulkUploadedData(null);
+              fetchImportLogs();
+            }
+          });
       })
-    })
-      .then(res => res.json())
-      .then(json => {
-        if (json.success) {
-          triggerToast(`Logged CSV import event in database.`);
-          setBulkUploadedData(null);
-          fetchImportLogs();
-        }
+      .catch(err => {
+        console.error('Error importing vehicles in bulk:', err);
+        triggerToast('Failed to complete bulk inventory import.');
       });
   };
 
@@ -148,7 +180,7 @@ export default function AdminImports() {
             <span>Upload Auditing Logs</span>
           </span>
 
-          <div className="flex flex-col gap-3.5">
+          <div className="flex flex-col gap-3.5 max-h-[300px] overflow-y-auto">
             {importLogs.map(log => (
               <div key={log.id} className="p-3 bg-light-bg border border-border-hairline text-left leading-relaxed">
                 <span className="text-[10px] font-display font-bold text-charcoal block truncate uppercase">{log.filename}</span>

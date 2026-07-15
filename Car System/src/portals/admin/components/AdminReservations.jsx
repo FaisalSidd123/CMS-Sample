@@ -1,36 +1,88 @@
 import React, { useState, useEffect } from 'react';
 import { TableSkeleton } from '../../../components/Skeletons';
-import { CalendarRange, ShieldAlert, XCircle, CheckCircle, Clock } from 'lucide-react';
+import { CalendarRange, Plus, X, Clock, Mail } from 'lucide-react';
 
 export default function AdminReservations() {
   const [reservations, setReservations] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [leads, setLeads] = useState([]);
+  const [agents, setAgents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [toastMsg, setToastMsg] = useState('');
+
+  // Add reservation form state
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [vehicleId, setVehicleId] = useState('');
+  const [leadId, setLeadId] = useState('');
+  const [agentId, setAgentId] = useState('');
+  const [deposit, setDeposit] = useState('');
+  const [holdExpiresAt, setHoldExpiresAt] = useState('');
 
   const triggerToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 3000);
   };
 
-  const fetchReservations = () => {
+  const fetchDependenciesAndReservations = () => {
     setIsLoading(true);
-    fetch('http://localhost:5000/api/reservations')
-      .then(res => res.json())
-      .then(json => {
-        if (json.success) {
-          setReservations(json.data);
+    const fetchRes = fetch('http://localhost:5000/api/reservations').then(r => r.json());
+    const fetchVehicles = fetch('http://localhost:5000/api/vehicles').then(r => r.json());
+    const fetchLeads = fetch('http://localhost:5000/api/leads').then(r => r.json());
+    const fetchAgents = fetch('http://localhost:5000/api/agents').then(r => r.json());
+
+    Promise.all([fetchRes, fetchVehicles, fetchLeads, fetchAgents])
+      .then(([resJson, vJson, lJson, aJson]) => {
+        if (resJson.success) setReservations(resJson.data);
+        if (vJson.success) {
+          // Filter to only display available vehicles in selection dropdown
+          const availableCars = vJson.data.filter(c => c.status === 'available');
+          setVehicles(availableCars);
         }
+        if (lJson.success) setLeads(lJson.data);
+        if (aJson.success) setAgents(aJson.data);
         setIsLoading(false);
       })
       .catch(err => {
-        console.error('Failed to fetch reservations:', err);
+        console.error('Failed to load reservation registry datasets:', err);
         setIsLoading(false);
       });
   };
 
   useEffect(() => {
-    fetchReservations();
+    fetchDependenciesAndReservations();
   }, []);
+
+  const handleCreateReservation = (e) => {
+    e.preventDefault();
+    if (!vehicleId || !leadId || !deposit || !holdExpiresAt) return;
+
+    const payload = {
+      vehicle_id: parseInt(vehicleId),
+      lead_id: parseInt(leadId),
+      agent_id: agentId ? parseInt(agentId) : null,
+      deposit_amount: parseFloat(deposit),
+      status: 'confirmed',
+      hold_expires_at: new Date(holdExpiresAt).toISOString()
+    };
+
+    fetch('http://localhost:5000/api/reservations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) {
+          triggerToast('Reservation created. Vehicle status changed to RESERVED.');
+          setShowAddForm(false);
+          setVehicleId(''); setLeadId(''); setAgentId(''); setDeposit(''); setHoldExpiresAt('');
+          fetchDependenciesAndReservations();
+        } else {
+          triggerToast(`Failed to hold vehicle: ${json.error}`);
+        }
+      })
+      .catch(err => triggerToast('Connection error creating reservation.'));
+  };
 
   const handleUpdateStatus = (resId, nextStatus) => {
     fetch(`http://localhost:5000/api/reservations/${resId}`, {
@@ -42,7 +94,7 @@ export default function AdminReservations() {
       .then(json => {
         if (json.success) {
           triggerToast(`Hold status updated to: ${nextStatus.toUpperCase()}`);
-          fetchReservations();
+          fetchDependenciesAndReservations();
         }
       });
   };
@@ -58,12 +110,65 @@ export default function AdminReservations() {
       )}
 
       {/* Header */}
-      <div className="border-b border-border-hairline pb-4">
-        <span className="text-[9px] font-mono text-brand-red uppercase tracking-widest block mb-0.5">// Hold Bookings</span>
-        <h2 className="text-xl md:text-2xl font-display font-extrabold text-charcoal uppercase leading-none">
-          Active Vehicle Reservations
-        </h2>
+      <div className="flex justify-between items-center border-b border-border-hairline pb-4">
+        <div>
+          <span className="text-[9px] font-mono text-brand-red uppercase tracking-widest block mb-0.5">// Hold Bookings</span>
+          <h2 className="text-xl md:text-2xl font-display font-extrabold text-charcoal uppercase leading-none">
+            Active Vehicle Reservations
+          </h2>
+        </div>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="bg-brand-red hover:bg-brand-red-hover text-white text-xs font-bold uppercase tracking-widest px-4 py-2.5 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+        >
+          <Plus className="w-4 h-4" />
+          <span>New Hold</span>
+        </button>
       </div>
+
+      {/* Add Hold Form */}
+      {showAddForm && (
+        <form onSubmit={handleCreateReservation} className="bg-white border border-border-hairline p-5 shadow-xs grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Select Vehicle</label>
+            <select required value={vehicleId} onChange={e => setVehicleId(e.target.value)} className="bg-white border border-border-hairline px-3 py-2 text-xs text-charcoal focus:border-brand-red outline-hidden cursor-pointer">
+              <option value="">Available vehicles...</option>
+              {vehicles.map(v => (
+                <option key={v.id} value={v.id}>{v.make} {v.model} ({v.year}) - {v.price}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Select Customer / Lead</label>
+            <select required value={leadId} onChange={e => setLeadId(e.target.value)} className="bg-white border border-border-hairline px-3 py-2 text-xs text-charcoal focus:border-brand-red outline-hidden cursor-pointer">
+              <option value="">Leads list...</option>
+              {leads.map(l => (
+                <option key={l.id} value={l.id}>{l.name} ({l.email})</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Assign Sales Agent</label>
+            <select value={agentId} onChange={e => setAgentId(e.target.value)} className="bg-white border border-border-hairline px-3 py-2 text-xs text-charcoal focus:border-brand-red outline-hidden cursor-pointer">
+              <option value="">No assignment</option>
+              {agents.map(a => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Hold Deposit ($ USD)</label>
+            <input required type="number" placeholder="e.g. 2000" value={deposit} onChange={e => setDeposit(e.target.value)} className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal focus:border-brand-red outline-hidden" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Expiry Date</label>
+            <input required type="date" value={holdExpiresAt} onChange={e => setHoldExpiresAt(e.target.value)} className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal focus:border-brand-red outline-hidden" />
+          </div>
+          <button type="submit" className="md:col-span-3 bg-charcoal text-white hover:bg-neutral-800 text-xs font-bold uppercase tracking-widest py-3 cursor-pointer">
+            Confirm Hold Booking
+          </button>
+        </form>
+      )}
 
       {/* Table */}
       <div className="bg-white border border-border-hairline shadow-xs overflow-x-auto">
