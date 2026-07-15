@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useMockData } from '../hooks/useMockData';
-import { CardSkeleton, DetailSkeleton } from '../components/Skeletons';
+import { useMockData } from '../../../hooks/useMockData';
+import { CardSkeleton, DetailSkeleton } from '../../../components/Skeletons';
 import {
   Car,
   ArrowLeft,

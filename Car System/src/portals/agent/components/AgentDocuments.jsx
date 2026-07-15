@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useMockData } from '../hooks/useMockData';
-import { TableSkeleton } from '../components/Skeletons';
+import { useMockData } from '../../../hooks/useMockData';
+import { TableSkeleton } from '../../../components/Skeletons';
 import { 
   FileCheck, 
   Plus, 

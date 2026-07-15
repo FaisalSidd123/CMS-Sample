@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useMockData } from '../hooks/useMockData';
-import { TableSkeleton } from '../components/Skeletons';
+import { useMockData } from '../../../hooks/useMockData';
+import { TableSkeleton } from '../../../components/Skeletons';
 import { 
   Car, 
   Plus, 
@@ -47,9 +47,27 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
 
   // Inline status dropdown handler
   const handleStatusChange = (vehicleId, newStatus) => {
-    const updated = vehicles.map(v => v.id === vehicleId ? { ...v, status: newStatus } : v);
-    onUpdateVehicles(updated);
-    triggerToast(`VIN status updated inline to: ${newStatus.toUpperCase()}`);
+    fetch(`http://localhost:5000/api/vehicles/${vehicleId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ status: newStatus })
+    })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data) {
+          const updated = vehicles.map(v => v.id === vehicleId ? json.data : v);
+          onUpdateVehicles(updated);
+          triggerToast(`VIN status updated inline to: ${newStatus.toUpperCase()}`);
+        } else {
+          triggerToast(`Failed to update status: ${json.error || 'Server error'}`);
+        }
+      })
+      .catch(err => {
+        console.error('Error updating vehicle status:', err);
+        triggerToast('Failed to update status: Server connection error');
+      });
   };
 
   // Delete
@@ -57,9 +75,23 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
     const confirmDelete = window.confirm("Are you sure you want to delete this vehicle from the inventory database?");
     if (!confirmDelete) return;
 
-    const updated = vehicles.filter(v => v.id !== vehicleId);
-    onUpdateVehicles(updated);
-    triggerToast(`Vehicle removed from catalog.`);
+    fetch(`http://localhost:5000/api/vehicles/${vehicleId}`, {
+      method: 'DELETE'
+    })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) {
+          const updated = vehicles.filter(v => v.id !== vehicleId);
+          onUpdateVehicles(updated);
+          triggerToast(`Vehicle removed from catalog.`);
+        } else {
+          triggerToast(`Failed to delete vehicle: ${json.error || 'Server error'}`);
+        }
+      })
+      .catch(err => {
+        console.error('Error deleting vehicle:', err);
+        triggerToast('Failed to delete vehicle: Server connection error');
+      });
   };
 
   // Submit Add form
@@ -67,19 +99,16 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
     e.preventDefault();
     if (!make || !model || !price || !mileage) return;
 
-    const newId = vehicles.length > 0 ? Math.max(...vehicles.map(v => v.id)) + 1 : 1;
-    const newVehicle = {
-      id: newId,
+    const newVehicleData = {
       make,
       model,
       year: parseInt(year),
-      price: `$${parseInt(price).toLocaleString()}`,
-      mileage: `${parseInt(mileage).toLocaleString()} mi`,
+      price: parseInt(price),
+      mileage: parseInt(mileage),
       bodyType,
       color,
       location,
       status: 'available',
-      dateAdded: new Date().toISOString(),
       specs: specs ? specs.split(',').map(s => s.trim()) : ['Premium Package', 'Verified History'],
       conditionNotes: conditionNotes || 'No major issues, verified mechanical condition.',
       thumbnailImage: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=80',
@@ -88,12 +117,29 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
       ]
     };
 
-    onUpdateVehicles([newVehicle, ...vehicles]);
-    setShowAddForm(false);
-    
-    // Clear inputs
-    setMake(''); setModel(''); setPrice(''); setMileage(''); setColor(''); setLocation(''); setSpecs(''); setConditionNotes('');
-    triggerToast(`Added vehicle: ${make} ${model} to catalog.`);
+    fetch('http://localhost:5000/api/vehicles', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(newVehicleData)
+    })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data) {
+          onUpdateVehicles([json.data, ...vehicles]);
+          setShowAddForm(false);
+          // Clear inputs
+          setMake(''); setModel(''); setPrice(''); setMileage(''); setColor(''); setLocation(''); setSpecs(''); setConditionNotes('');
+          triggerToast(`Added vehicle: ${make} ${model} to database.`);
+        } else {
+          triggerToast(`Failed to add vehicle: ${json.error || 'Server error'}`);
+        }
+      })
+      .catch(err => {
+        console.error('Error creating vehicle:', err);
+        triggerToast('Failed to add vehicle: Server connection error');
+      });
   };
 
   // Bulk Upload simulation

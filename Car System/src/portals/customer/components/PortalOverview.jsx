@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useMockData } from '../hooks/useMockData';
-import { DashboardSkeleton } from '../components/Skeletons';
+import { useMockData } from '../../../hooks/useMockData';
+import { DashboardSkeleton } from '../../../components/Skeletons';
 import { 
   Car, 
   FileText, 
@@ -13,7 +13,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 
-export default function PortalDashboard() {
+export default function PortalOverview() {
   const { data: activeOrders, isLoading: ordersLoading } = useMockData('orders');
   const { data: purchases, isLoading: purchasesLoading } = useMockData('purchaseHistory');
   const { data: customer, isLoading: customerLoading } = useMockData('customerProfile');

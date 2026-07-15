@@ -1,6 +1,6 @@
 import React from 'react';
-import { useMockData } from '../hooks/useMockData';
-import { DashboardSkeleton } from '../components/Skeletons';
+import { useMockData } from '../../../hooks/useMockData';
+import { DashboardSkeleton } from '../../../components/Skeletons';
 import { 
   Car, 
   CalendarCheck, 
@@ -13,7 +13,7 @@ import {
   Briefcase
 } from 'lucide-react';
 
-export default function AdminDashboard() {
+export default function AdminOverview() {
   // Load full sets
   const { data: vehiclesList, isLoading: vehiclesLoading } = useMockData('vehicles');
   const { data: clientsList, isLoading: clientsLoading } = useMockData('clients');

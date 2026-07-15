@@ -16,9 +16,8 @@ import {
 } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 
-export default function PortalShell({ children }) {
+export default function PortalShell({ children, activeTab, onTabChange }) {
   const navigate = useNavigate();
-  const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
 
   // Notification local state
@@ -39,20 +38,18 @@ export default function PortalShell({ children }) {
   };
 
   const navItems = [
-    { label: 'My Dashboard', path: '/portal', icon: LayoutDashboard },
-    { label: 'My Orders', path: '/portal/orders', icon: Car },
-    { label: 'Documents', path: '/portal/documents', icon: FileText },
-    { label: 'Purchase History', path: '/portal/purchases', icon: History },
-    { label: 'Wishlist', path: '/portal/wishlist', icon: Heart },
-    { label: 'Profile Settings', path: '/portal/profile', icon: User }
+    { label: 'My Dashboard', id: 'dashboard', icon: LayoutDashboard },
+    { label: 'My Orders', id: 'orders', icon: Car },
+    { label: 'Documents', id: 'documents', icon: FileText },
+    { label: 'Purchase History', id: 'purchases', icon: History },
+    { label: 'Wishlist', id: 'wishlist', icon: Heart },
+    { label: 'Profile Settings', id: 'profile', icon: User }
   ];
 
   // Helper to determine active route header title
   const getHeaderTitle = () => {
-    const current = navItems.find(item => item.path === location.pathname);
-    if (current) return current.label;
-    if (location.pathname.startsWith('/portal/orders/')) return 'Order Details';
-    return 'Customer Workspace';
+    const current = navItems.find(item => item.id === activeTab);
+    return current ? current.label : 'Customer Workspace';
   };
 
   return (
@@ -70,13 +67,12 @@ export default function PortalShell({ children }) {
           {/* Links */}
           <nav className="flex flex-col gap-1.5">
             {navItems.map((item) => (
-              <NavLink
+              <button
                 key={item.label}
-                to={item.path}
-                end={item.path === '/portal'}
-                className={({ isActive }) => `
-                  flex items-center gap-3 px-4 py-3 text-xs font-semibold uppercase tracking-wider transition-all duration-200
-                  ${isActive
+                onClick={() => onTabChange(item.id)}
+                className={`
+                  flex items-center gap-3 px-4 py-3 text-xs font-semibold uppercase tracking-wider transition-all duration-200 w-full text-left cursor-pointer
+                  ${activeTab === item.id
                     ? 'bg-brand-red text-white shadow-md'
                     : 'text-neutral-400 hover:text-white hover:bg-white/5'
                   }
@@ -84,7 +80,7 @@ export default function PortalShell({ children }) {
               >
                 <item.icon className="w-4 h-4" />
                 <span>{item.label}</span>
-              </NavLink>
+              </button>
             ))}
           </nav>
         </div>
@@ -102,7 +98,7 @@ export default function PortalShell({ children }) {
 
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-3 px-4 py-2.5 text-xs text-neutral-400 hover:text-white transition-colors uppercase font-mono tracking-widest cursor-pointer text-left"
+            className="flex items-center gap-3 px-4 py-2.5 text-xs text-neutral-400 hover:text-white transition-colors uppercase font-mono tracking-widest cursor-pointer text-left w-full"
           >
             <LogOut className="w-4 h-4 text-brand-red" />
             <span>Sign Out</span>
@@ -193,7 +189,7 @@ export default function PortalShell({ children }) {
             </div>
 
             {/* Profile Avatar Trigger link to settings */}
-            <Link to="/portal/profile" className="flex items-center gap-2 group">
+            <button onClick={() => onTabChange('profile')} className="flex items-center gap-2 group cursor-pointer border-none bg-transparent">
               <div className="w-8 h-8 rounded-full overflow-hidden bg-neutral-200 border border-border-hairline group-hover:border-brand-red transition-colors shrink-0">
                 <img
                   src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&q=80"
@@ -204,7 +200,7 @@ export default function PortalShell({ children }) {
               <span className="hidden sm:inline text-xs font-semibold text-charcoal group-hover:text-brand-red transition-colors">
                 Alexander
               </span>
-            </Link>
+            </button>
 
           </div>
         </header>
@@ -219,18 +215,17 @@ export default function PortalShell({ children }) {
       {/* 3. MOBILE BOTTOM NAVIGATION */}
       <nav className="fixed bottom-0 left-0 w-full bg-charcoal text-white h-16 border-t border-neutral-800 z-30 flex md:hidden items-center justify-around">
         {navItems.map((item) => (
-          <NavLink
+          <button
             key={item.label}
-            to={item.path}
-            end={item.path === '/portal'}
-            className={({ isActive }) => `
-              flex flex-col items-center gap-1.5 py-1 px-3 text-[9px] font-bold uppercase tracking-wider transition-colors
-              ${isActive ? 'text-brand-red' : 'text-neutral-400 hover:text-white'}
+            onClick={() => onTabChange(item.id)}
+            className={`
+              flex flex-col items-center gap-1.5 py-1 px-3 text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer bg-transparent border-none
+              ${activeTab === item.id ? 'text-brand-red' : 'text-neutral-400 hover:text-white'}
             `}
           >
             <item.icon className="w-4.5 h-4.5" />
             <span className="truncate max-w-[60px]">{item.label.split(' ')[0] || item.label}</span>
-          </NavLink>
+          </button>
         ))}
         {/* Mobile Inventory Anchor */}
         <Link

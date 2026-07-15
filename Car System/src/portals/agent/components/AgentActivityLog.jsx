@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useMockData } from '../hooks/useMockData';
-import { TableSkeleton } from '../components/Skeletons';
+import { useMockData } from '../../../hooks/useMockData';
+import { TableSkeleton } from '../../../components/Skeletons';
 import { 
   Activity, 
   Search, 

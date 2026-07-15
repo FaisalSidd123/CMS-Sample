@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useMockData } from '../hooks/useMockData';
-import { TableSkeleton } from '../components/Skeletons';
+import { useMockData } from '../../../hooks/useMockData';
+import { TableSkeleton } from '../../../components/Skeletons';
 import { 
   Users, 
   Search, 

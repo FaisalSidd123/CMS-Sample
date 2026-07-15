@@ -15,37 +15,18 @@ import { invoiceRequests as initialInvoices, mockAgentDocuments as initialDocs }
 import { adminAuditLog as initialAudits } from './data/adminAuditLog';
 import { transactions as initialTransactions } from './data/transactions';
 
-// Components & Shells
+// Components
 import Navbar from './components/Navbar';
-import PortalShell from './components/PortalShell';
-import AgentShell from './components/AgentShell';
-import AdminShell from './components/AdminShell';
 
 // Pages
 import LandingPage from './pages/LandingPage';
 import VehicleDetails from './pages/VehicleDetails';
-import PortalDashboard from './pages/PortalDashboard';
-import PortalOrders from './pages/PortalOrders';
-import PortalDocuments from './pages/PortalDocuments';
-import PortalPurchases from './pages/PortalPurchases';
-import PortalWishlist from './pages/PortalWishlist';
-import PortalProfile from './pages/PortalProfile';
 import Login from './pages/Login';
 
-// Agent Pages
-import AgentDashboard from './pages/AgentDashboard';
-import AgentClients from './pages/AgentClients';
-import AgentReservations from './pages/AgentReservations';
-import AgentPipeline from './pages/AgentPipeline';
-import AgentDocuments from './pages/AgentDocuments';
-import AgentActivityLog from './pages/AgentActivityLog';
-
-// Admin Pages
-import AdminDashboard from './pages/AdminDashboard';
-import AdminInventory from './pages/AdminInventory';
-import AdminUsers from './pages/AdminUsers';
-import AdminTransactions from './pages/AdminTransactions';
-import AdminDocuments from './pages/AdminDocuments';
+// Portals
+import PortalDashboardPage from './portals/customer/PortalDashboardPage';
+import AgentDashboardPage from './portals/agent/AgentDashboardPage';
+import AdminDashboardPage from './portals/admin/AdminDashboardPage';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -297,19 +278,19 @@ export default function App() {
 
         {/* B. PRIVATE CUSTOMER PORTAL WORKSPACE */}
         <Route
-          path="/portal/*"
+          path="/portal"
           element={
-            <PortalShell>
-              <Routes>
-                <Route path="/" element={<PortalDashboard />} />
-                <Route path="/orders" element={<PortalOrders />} />
-                <Route path="/orders/:id" element={<PortalOrders />} />
-                <Route path="/documents" element={<PortalDocuments />} />
-                <Route path="/purchases" element={<PortalPurchases />} />
-                <Route path="/wishlist" element={<PortalWishlist />} />
-                <Route path="/profile" element={<PortalProfile />} />
-              </Routes>
-            </PortalShell>
+            <PortalDashboardPage
+              savedVehicleIds={savedVehicleIds}
+              onToggleSave={handleToggleSave}
+              vehicles={vehiclesList}
+              orders={ordersList}
+              onUpdateOrders={setOrdersList}
+              reservations={reservationsList}
+              onUpdateReservations={setReservationsList}
+              activities={activitiesList}
+              onUpdateActivities={setActivitiesList}
+            />
           }
         />
 
@@ -321,97 +302,39 @@ export default function App() {
 
         {/* D. PRIVATE SALES AGENT PORTAL */}
         <Route
-          path="/agent/*"
+          path="/agent"
           element={
-            <AgentShell>
-              <Routes>
-                <Route path="/" element={<AgentDashboard />} />
-                <Route path="/clients" element={<AgentClients />} />
-                <Route path="/clients/:id" element={<AgentClients />} />
-                <Route
-                  path="/reservations"
-                  element={
-                    <AgentReservations
-                      sharedReservations={reservationsList}
-                      onUpdateReservations={setReservationsList}
-                      sharedVehicles={vehiclesList}
-                      onUpdateVehicles={setVehiclesList}
-                    />
-                  }
-                />
-                <Route
-                  path="/reserve"
-                  element={
-                    <AgentReservations
-                      sharedReservations={reservationsList}
-                      onUpdateReservations={setReservationsList}
-                      sharedVehicles={vehiclesList}
-                      onUpdateVehicles={setVehiclesList}
-                    />
-                  }
-                />
-                <Route path="/pipeline" element={<AgentPipeline />} />
-                <Route path="/documents" element={<AgentDocuments />} />
-                <Route
-                  path="/activity"
-                  element={
-                    <AgentActivityLog
-                      sharedActivities={activitiesList}
-                      onUpdateActivities={setActivitiesList}
-                    />
-                  }
-                />
-              </Routes>
-            </AgentShell>
+            <AgentDashboardPage
+              sharedReservations={reservationsList}
+              onUpdateReservations={setReservationsList}
+              sharedVehicles={vehiclesList}
+              onUpdateVehicles={setVehiclesList}
+              sharedActivities={activitiesList}
+              onUpdateActivities={setActivitiesList}
+            />
           }
         />
 
         {/* E. MASTER ADMIN PORTAL */}
         <Route
-          path="/admin/*"
+          path="/admin"
           element={
-            <AdminShell>
-              <Routes>
-                <Route path="/" element={<AdminDashboard />} />
-                <Route
-                  path="/inventory"
-                  element={
-                    <AdminInventory
-                      sharedVehicles={vehiclesList}
-                      onUpdateVehicles={setVehiclesList}
-                    />
-                  }
-                />
-                <Route
-                  path="/users"
-                  element={
-                    <AdminUsers
-                      sharedClients={clientsList}
-                      onUpdateClients={setClientsList}
-                      sharedAgents={agentsList}
-                      onUpdateAgents={setAgentsList}
-                      sharedReservations={reservationsList}
-                      sharedActivities={activitiesList}
-                    />
-                  }
-                />
-                <Route path="/transactions" element={<AdminTransactions />} />
-                <Route
-                  path="/documents"
-                  element={
-                    <AdminDocuments
-                      sharedInvoices={invoicesList}
-                      onUpdateInvoices={setInvoicesList}
-                      sharedDocs={docsList}
-                      onUpdateDocs={setDocsList}
-                      sharedAudit={adminAuditList}
-                      onUpdateAudit={setAdminAuditList}
-                    />
-                  }
-                />
-
-              </Routes>
-            </AdminShell>
+            <AdminDashboardPage
+              sharedVehicles={vehiclesList}
+              onUpdateVehicles={setVehiclesList}
+              sharedClients={clientsList}
+              onUpdateClients={setClientsList}
+              sharedAgents={agentsList}
+              onUpdateAgents={setAgentsList}
+              sharedReservations={reservationsList}
+              sharedActivities={activitiesList}
+              sharedInvoices={invoicesList}
+              onUpdateInvoices={setInvoicesList}
+              sharedDocs={docsList}
+              onUpdateDocs={setDocsList}
+              sharedAudit={adminAuditList}
+              onUpdateAudit={setAdminAuditList}
+            />
           }
         />
 

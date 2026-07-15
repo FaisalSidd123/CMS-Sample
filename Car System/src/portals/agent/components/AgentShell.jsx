@@ -13,12 +13,11 @@ import {
   X,
   User
 } from 'lucide-react';
-import { mockCurrentAgent } from '../data/agents';
-import { reservations } from '../data/reservations';
+import { mockCurrentAgent } from '../../../data/agents';
+import { reservations } from '../../../data/reservations';
 
-export default function AgentShell({ children }) {
+export default function AgentShell({ children, activeTab, onTabChange }) {
   const navigate = useNavigate();
-  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Monitor hold urgencies for the header notification warning
@@ -29,19 +28,17 @@ export default function AgentShell({ children }) {
   }).length;
 
   const navItems = [
-    { label: 'Dashboard', path: '/agent', icon: LayoutDashboard },
-    { label: 'My Clients', path: '/agent/clients', icon: Users },
-    { label: 'Reservations', path: '/agent/reservations', icon: CalendarRange },
-    { label: 'Deal Pipeline', path: '/agent/pipeline', icon: GitBranch },
-    { label: 'Documents & Invoices', path: '/agent/documents', icon: FileCheck },
-    { label: 'Activity Log', path: '/agent/activity', icon: Activity }
+    { label: 'Dashboard', id: 'dashboard', icon: LayoutDashboard },
+    { label: 'My Clients', id: 'clients', icon: Users },
+    { label: 'Reservations', id: 'reservations', icon: CalendarRange },
+    { label: 'Deal Pipeline', id: 'pipeline', icon: GitBranch },
+    { label: 'Documents & Invoices', id: 'documents', icon: FileCheck },
+    { label: 'Activity Log', id: 'activity', icon: Activity }
   ];
 
   const getHeaderTitle = () => {
-    const current = navItems.find(item => item.path === location.pathname);
-    if (current) return current.label;
-    if (location.pathname.startsWith('/agent/clients/')) return 'Client Record';
-    return 'Agent Console';
+    const current = navItems.find(item => item.id === activeTab);
+    return current ? current.label : 'Agent Console';
   };
 
   return (
@@ -74,13 +71,12 @@ export default function AgentShell({ children }) {
           {/* Navigation Links */}
           <nav className="flex flex-col gap-1">
             {navItems.map((item) => (
-              <NavLink
+              <button
                 key={item.label}
-                to={item.path}
-                end={item.path === '/agent'}
-                className={({ isActive }) => `
-                  flex items-center gap-3 px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider transition-all duration-200
-                  ${isActive 
+                onClick={() => onTabChange(item.id)}
+                className={`
+                  flex items-center gap-3 px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider transition-all duration-200 w-full text-left cursor-pointer
+                  ${activeTab === item.id 
                     ? 'bg-brand-red text-white' 
                     : 'text-neutral-400 hover:text-white hover:bg-white/5'
                   }
@@ -88,7 +84,7 @@ export default function AgentShell({ children }) {
               >
                 <item.icon className="w-4.5 h-4.5 shrink-0" />
                 <span>{item.label}</span>
-              </NavLink>
+              </button>
             ))}
           </nav>
         </div>
@@ -96,18 +92,18 @@ export default function AgentShell({ children }) {
         {/* Sidebar Footer links */}
         <div className="pt-4 border-t border-white/5 flex flex-col gap-2">
           {expiringSoonCount > 0 && (
-            <Link 
-              to="/agent/reservations" 
-              className="flex items-center gap-2 px-3 py-2 text-[9px] font-mono uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20"
+            <button 
+              onClick={() => onTabChange('reservations')} 
+              className="flex items-center gap-2 px-3 py-2 text-[9px] font-mono uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20 w-full text-left cursor-pointer"
             >
-              <AlertTriangle className="w-4 h-4 text-amber-400" />
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
               <span>{expiringSoonCount} Hold expiring soon</span>
-            </Link>
+            </button>
           )}
 
           <button
             onClick={() => navigate('/login')}
-            className="flex items-center gap-3 px-3 py-2 text-[10px] text-neutral-400 hover:text-white transition-colors uppercase font-mono tracking-widest cursor-pointer text-left"
+            className="flex items-center gap-3 px-3 py-2 text-[10px] text-neutral-400 hover:text-white transition-colors uppercase font-mono tracking-widest cursor-pointer text-left w-full"
           >
             <LogOut className="w-4.5 h-4.5 text-brand-red" />
             <span>Sign Out</span>
@@ -124,9 +120,9 @@ export default function AgentShell({ children }) {
 
         <div className="flex items-center gap-4">
           {expiringSoonCount > 0 && (
-            <Link to="/agent/reservations" className="text-amber-400 relative">
+            <button onClick={() => onTabChange('reservations')} className="text-amber-400 relative cursor-pointer">
               <AlertTriangle className="w-5 h-5 animate-pulse" />
-            </Link>
+            </button>
           )}
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -143,19 +139,20 @@ export default function AgentShell({ children }) {
           <div className="fixed inset-0 bg-black/60 z-20 md:hidden" onClick={() => setMobileMenuOpen(false)} />
           <nav className="fixed top-16 left-0 w-full bg-charcoal text-white border-b border-neutral-800 z-20 md:hidden p-6 flex flex-col gap-4 text-left">
             {navItems.map((item) => (
-              <NavLink
+              <button
                 key={item.label}
-                to={item.path}
-                end={item.path === '/agent'}
-                onClick={() => setMobileMenuOpen(false)}
-                className={({ isActive }) => `
-                  flex items-center gap-3 px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors
-                  ${isActive ? 'text-brand-red bg-white/5 border-l-2 border-brand-red' : 'text-neutral-400'}
+                onClick={() => {
+                  onTabChange(item.id);
+                  setMobileMenuOpen(false);
+                }}
+                className={`
+                  flex items-center gap-3 px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors w-full text-left cursor-pointer
+                  ${activeTab === item.id ? 'text-brand-red bg-white/5 border-l-2 border-brand-red' : 'text-neutral-400'}
                 `}
               >
                 <item.icon className="w-4.5 h-4.5" />
                 <span>{item.label}</span>
-              </NavLink>
+              </button>
             ))}
             <div className="h-[1px] bg-white/5 my-2" />
             <button

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useMockData } from '../hooks/useMockData';
-import { CardSkeleton } from '../components/Skeletons';
+import { useMockData } from '../../../hooks/useMockData';
+import { CardSkeleton } from '../../../components/Skeletons';
 import { 
   Heart, 
   Trash2, 

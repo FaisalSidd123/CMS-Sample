@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useMockData } from '../hooks/useMockData';
-import { DashboardSkeleton } from '../components/Skeletons';
+import { useMockData } from '../../../hooks/useMockData';
+import { DashboardSkeleton } from '../../../components/Skeletons';
 import { 
   Users, 
   CalendarClock, 
@@ -12,7 +12,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 
-export default function AgentDashboard() {
+export default function AgentOverview() {
   const navigate = useNavigate();
   const { data: agent, isLoading: agentLoading } = useMockData('agents');
   const { data: clientsList, isLoading: clientsLoading } = useMockData('clients');

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { useMockData } from '../hooks/useMockData';
-import { TableSkeleton } from '../components/Skeletons';
+import { useMockData } from '../../../hooks/useMockData';
+import { TableSkeleton } from '../../../components/Skeletons';
 import { 
   CalendarRange, 
   Car, 

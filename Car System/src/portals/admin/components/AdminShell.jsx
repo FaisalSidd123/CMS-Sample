@@ -11,37 +11,41 @@ import {
   LogOut, 
   Menu, 
   X,
-  UserCheck
+  UserCheck,
+  UploadCloud,
+  Wrench,
+  CalendarRange
 } from 'lucide-react';
-import { adminUsers } from '../data/adminUsers';
+import { adminUsers } from '../../../data/adminUsers';
 
-export default function AdminShell({ children }) {
+export default function AdminShell({ children, activeTab, onTabChange }) {
   const navigate = useNavigate();
-  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const activeAdmin = adminUsers[0]; // Chief Executive Operator
 
   const navItems = [
-    { label: 'Dashboard', path: '/admin', icon: Sliders },
-    { label: 'Inventory', path: '/admin/inventory', icon: Car },
-    { label: 'Customers & Agents', path: '/admin/users', icon: Users },
-    { label: 'Transactions', path: '/admin/transactions', icon: DollarSign },
-    { label: 'Documents', path: '/admin/documents', icon: FolderOpen }
+    { label: 'Dashboard', id: 'dashboard', icon: Sliders },
+    { label: 'Inventory', id: 'inventory', icon: Car, hasSubmenu: true },
+    { label: 'Leads', id: 'leads', icon: Users, badge: 9 },
+    { label: 'Reservations', id: 'reservations', icon: CalendarRange },
+    { label: 'Imports', id: 'imports', icon: UploadCloud, badge: 7 },
+    { label: 'Payments', id: 'payments', icon: DollarSign, badge: 6 },
+    { label: 'Service', id: 'service', icon: Wrench, badge: 6 },
+    { label: 'Sales Team', id: 'salesteam', icon: UserCheck },
+    { label: 'Documents', id: 'documents', icon: FolderOpen }
   ];
 
   const getHeaderTitle = () => {
-    const current = navItems.find(item => item.path === location.pathname);
-    if (current) return current.label;
-    if (location.pathname.startsWith('/admin/users/')) return 'User File Check';
-    return 'Master Admin Console';
+    const current = navItems.find(item => item.id === activeTab);
+    return current ? current.label : 'Master Admin Console';
   };
 
   return (
     <div className="min-h-screen bg-light-bg flex flex-col md:flex-row text-charcoal">
       
       {/* 1. DESKTOP SIDEBAR */}
-      <aside className="hidden md:flex flex-col justify-between w-60 bg-[#0F172A] text-white shrink-0 p-5 border-r border-slate-800">
+      <aside className="hidden md:flex flex-col justify-between w-64 bg-[#0F172A] text-white shrink-0 p-5 border-r border-slate-800">
         <div>
           {/* Logo */}
           <Link to="/" className="flex items-center gap-1.5 font-display font-extrabold tracking-widest text-xs uppercase mb-8 pb-3 border-b border-slate-800">
@@ -63,21 +67,53 @@ export default function AdminShell({ children }) {
           {/* Navigation Links */}
           <nav className="flex flex-col gap-1">
             {navItems.map((item) => (
-              <NavLink
-                key={item.label}
-                to={item.path}
-                end={item.path === '/admin'}
-                className={({ isActive }) => `
-                  flex items-center gap-3 px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-all duration-200
-                  ${isActive 
-                    ? 'bg-brand-red text-white' 
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
-                  }
-                `}
-              >
-                <item.icon className="w-4.5 h-4.5 shrink-0" />
-                <span>{item.label}</span>
-              </NavLink>
+              <div key={item.id} className="w-full">
+                <button
+                  onClick={() => onTabChange(item.id)}
+                  className={`
+                    flex items-center justify-between px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider transition-all duration-200 w-full cursor-pointer
+                    ${activeTab === item.id 
+                      ? 'bg-brand-red text-white' 
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }
+                  `}
+                >
+                  <div className="flex items-center gap-3">
+                    <item.icon className="w-4.5 h-4.5 shrink-0" />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.badge !== undefined && (
+                    <span className="text-[9px] font-mono bg-white/10 text-slate-300 px-1.5 py-0.5 rounded-sm">
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+
+                {/* Submenu for Inventory items */}
+                {item.id === 'inventory' && activeTab === 'inventory' && (
+                  <div className="pl-6 pr-2 py-2 flex flex-col gap-1.5 border-l border-slate-800 bg-black/10 select-none text-[9px] font-mono text-slate-400 uppercase">
+                    <div className="flex justify-between items-center py-0.5">
+                      <span>All Vehicles</span>
+                      <span className="bg-slate-800 text-slate-400 px-1 rounded-sm">25</span>
+                    </div>
+                    <div className="flex justify-between items-center py-0.5">
+                      <span>Available</span>
+                      <span className="bg-slate-800 text-slate-400 px-1 rounded-sm">14</span>
+                    </div>
+                    <div className="flex justify-between items-center py-0.5">
+                      <span>Reserved</span>
+                      <span className="bg-slate-800 text-slate-400 px-1 rounded-sm">5</span>
+                    </div>
+                    <div className="flex justify-between items-center py-0.5">
+                      <span>Sold</span>
+                      <span className="bg-slate-800 text-slate-400 px-1 rounded-sm">6</span>
+                    </div>
+                    <div className="py-0.5 hover:text-white cursor-pointer">
+                      <span>Reporting</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             ))}
           </nav>
         </div>
@@ -114,19 +150,27 @@ export default function AdminShell({ children }) {
           <div className="fixed inset-0 bg-black/60 z-20 md:hidden" onClick={() => setMobileMenuOpen(false)} />
           <nav className="fixed top-16 left-0 w-full bg-[#0F172A] text-white border-b border-slate-800 z-20 md:hidden p-6 flex flex-col gap-4 text-left">
             {navItems.map((item) => (
-              <NavLink
+              <button
                 key={item.label}
-                to={item.path}
-                end={item.path === '/admin'}
-                onClick={() => setMobileMenuOpen(false)}
-                className={({ isActive }) => `
-                  flex items-center gap-3 px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors
-                  ${isActive ? 'text-brand-red bg-white/5 border-l-2 border-brand-red' : 'text-slate-400'}
+                onClick={() => {
+                  onTabChange(item.id);
+                  setMobileMenuOpen(false);
+                }}
+                className={`
+                  flex items-center justify-between px-4 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors w-full text-left cursor-pointer
+                  ${activeTab === item.id ? 'text-brand-red bg-white/5 border-l-2 border-brand-red' : 'text-slate-400'}
                 `}
               >
-                <item.icon className="w-4.5 h-4.5" />
-                <span>{item.label}</span>
-              </NavLink>
+                <div className="flex items-center gap-3">
+                  <item.icon className="w-4.5 h-4.5" />
+                  <span>{item.label}</span>
+                </div>
+                {item.badge !== undefined && (
+                  <span className="text-[9px] font-mono bg-white/10 text-slate-300 px-1.5 py-0.5 rounded-sm">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
             ))}
             <div className="h-[1px] bg-slate-800 my-2" />
             <button
@@ -142,6 +186,7 @@ export default function AdminShell({ children }) {
           </nav>
         </>
       )}
+
 
       {/* 4. MAIN APP CONTENT CONTAINER */}
       <main className="flex-1 flex flex-col min-w-0">

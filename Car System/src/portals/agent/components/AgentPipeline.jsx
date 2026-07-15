@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useMockData } from '../hooks/useMockData';
-import { DashboardSkeleton } from '../components/Skeletons';
+import { useMockData } from '../../../hooks/useMockData';
+import { DashboardSkeleton } from '../../../components/Skeletons';
 import { 
   GitBranch, 
   ChevronRight, 
