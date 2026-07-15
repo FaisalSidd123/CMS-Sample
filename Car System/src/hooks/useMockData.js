@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { vehicles } from '../data/vehicles';
 import { orders } from '../data/orders';
 import { documents } from '../data/documents';
 import { purchaseHistory } from '../data/purchaseHistory';
@@ -14,7 +13,6 @@ import { adminUsers } from '../data/adminUsers';
 import { adminAuditLog } from '../data/adminAuditLog';
 
 const dataMap = {
-  vehicles,
   orders,
   documents,
   purchaseHistory,
@@ -36,6 +34,35 @@ export function useMockData(category, id = null) {
 
   useEffect(() => {
     setIsLoading(true);
+
+    if (category === 'vehicles') {
+      const url = id !== null 
+        ? `http://localhost:5000/api/vehicles/${id}`
+        : 'http://localhost:5000/api/vehicles';
+      
+      fetch(url)
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.json();
+        })
+        .then(json => {
+          if (json.success) {
+            setData(json.data);
+          } else {
+            console.error('Failed to load vehicles from Supabase API:', json.error);
+            setData(null);
+          }
+          setIsLoading(false);
+        })
+        .catch(err => {
+          console.error('API Connection Error: Failed to fetch from database server at:', url, err);
+          setData(id !== null ? null : []);
+          setIsLoading(false);
+        });
+      return;
+    }
+
+    // Default mock behavior for other assets
     const timer = setTimeout(() => {
       const source = dataMap[category];
       if (id !== null && Array.isArray(source)) {
@@ -45,7 +72,7 @@ export function useMockData(category, id = null) {
         setData(source || null);
       }
       setIsLoading(false);
-    }, 400); // 400ms delay to simulate network latency
+    }, 400);
 
     return () => clearTimeout(timer);
   }, [category, id]);

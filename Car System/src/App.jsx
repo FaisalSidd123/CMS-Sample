@@ -5,7 +5,6 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 // Mock Data
-import { vehicles as initialVehicles } from './data/vehicles';
 import { orders as initialOrders } from './data/orders';
 import { documents as initialDocuments } from './data/documents';
 import { customerProfile, customerRoster as initialClients } from './data/clients';
@@ -165,7 +164,7 @@ export default function App() {
   const [lenis, setLenis] = useState(null);
 
   // Shared Global States
-  const [vehiclesList, setVehiclesList] = useState(initialVehicles);
+  const [vehiclesList, setVehiclesList] = useState([]);
   const [savedVehicleIds, setSavedVehicleIds] = useState(customerProfile.savedVehicleIds);
   const [ordersList, setOrdersList] = useState(initialOrders);
   const [reservationsList, setReservationsList] = useState(initialReservations);
@@ -175,6 +174,21 @@ export default function App() {
   const [invoicesList, setInvoicesList] = useState(initialInvoices);
   const [docsList, setDocsList] = useState(initialDocs);
   const [adminAuditList, setAdminAuditList] = useState(initialAudits);
+
+  // Synchronize vehicles catalog from Supabase database
+  useEffect(() => {
+    fetch('http://localhost:5000/api/vehicles')
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data) {
+          setVehiclesList(json.data);
+          console.log('Successfully fetched catalog from Supabase.');
+        }
+      })
+      .catch(err => {
+        console.warn('Supabase Express API offline. Utilized local data parameters:', err);
+      });
+  }, []);
 
   // Initialize Lenis Smooth Scrolling
   useEffect(() => {
