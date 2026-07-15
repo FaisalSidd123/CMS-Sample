@@ -18,7 +18,7 @@ export default function AdminDocuments() {
 
   // Form states
   const [selectedLead, setSelectedLead] = useState('');
-  const [docType, setDocType] = useState('Invoice');
+  const [docType, setDocType] = useState('invoice');
   const [title, setTitle] = useState('');
   
   // File state
@@ -104,10 +104,10 @@ export default function AdminDocuments() {
     // 2. Save document record to DB
     const payload = {
       title,
-      document_type: docType,
+      document_type: docType, // will be 'invoice' or 'contract'
       file_url: uploadedFileUrl,
       lead_id: parseInt(selectedLead),
-      status: 'active'
+      status: 'completed' // conformed to database CHECK (status IN ('draft', 'completed'))
     };
 
     fetch('http://localhost:5000/api/documents', {
@@ -244,10 +244,8 @@ export default function AdminDocuments() {
                 onChange={(e) => setDocType(e.target.value)}
                 className="bg-white border border-neutral-200 px-3 py-2.5 text-xs text-charcoal outline-hidden focus:border-brand-red cursor-pointer"
               >
-                <option value="Invoice">Escrow Invoice</option>
-                <option value="Receipt">Cleared Receipt</option>
-                <option value="Bill of Lading">Bill of Lading</option>
-                <option value="Contract">Agreement Contract</option>
+                <option value="invoice">Escrow Invoice</option>
+                <option value="contract">Agreement Contract / Bill of Lading</option>
               </select>
             </div>
 

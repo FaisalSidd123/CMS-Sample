@@ -1,30 +1,28 @@
-import React, { useState } from 'react';
-import { useMockData } from '../../../hooks/useMockData';
+import React, { useState, useEffect } from 'react';
 import { TableSkeleton } from '../../../components/Skeletons';
 import { 
-  Car, 
   Plus, 
+  X, 
   Trash2, 
-  Edit, 
-  FileText, 
-  UploadCloud, 
   Eye, 
   EyeOff, 
-  Check, 
-  X,
-  FileSpreadsheet
+  UploadCloud, 
+  FileSpreadsheet, 
+  FileText,
+  Edit2
 } from 'lucide-react';
 
-export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }) {
-  const { data: initialVehicles, isLoading } = useMockData('vehicles');
+export default function AdminInventory() {
+  const [vehicles, setVehicles] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [toastMsg, setToastMsg] = useState('');
+  const [expandedRowId, setExpandedRowId] = useState(null);
 
-  const vehicles = sharedVehicles.length > 0 ? sharedVehicles : (initialVehicles || []);
-
-  // Form states
+  // Add form states
   const [showAddForm, setShowAddForm] = useState(false);
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
-  const [year, setYear] = useState('2023');
+  const [year, setYear] = useState('2024');
   const [price, setPrice] = useState('');
   const [mileage, setMileage] = useState('');
   const [bodyType, setBodyType] = useState('Coupe');
@@ -32,71 +30,52 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
   const [location, setLocation] = useState('');
   const [specs, setSpecs] = useState('');
   const [conditionNotes, setConditionNotes] = useState('');
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
 
-  // Bulk Upload state
+  // Edit form states
+  const [editVehicleId, setEditVehicleId] = useState(null);
+  const [editMake, setEditMake] = useState('');
+  const [editModel, setEditModel] = useState('');
+  const [editYear, setEditYear] = useState('');
+  const [editPrice, setEditPrice] = useState('');
+  const [editMileage, setEditMileage] = useState('');
+  const [editBodyType, setEditBodyType] = useState('Coupe');
+  const [editColor, setEditColor] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editSpecs, setEditSpecs] = useState('');
+  const [editConditionNotes, setEditConditionNotes] = useState('');
+  const [existingImages, setExistingImages] = useState([]);
+  const [newEditImages, setNewEditImages] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Sheet parser states
   const [bulkUploadedData, setBulkUploadedData] = useState(null);
-
-  // Expands details per row
-  const [expandedRowId, setExpandedRowId] = useState(null);
-  const [toastMsg, setToastMsg] = useState('');
 
   const triggerToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 3000);
   };
 
-  // Inline status dropdown handler
-  const handleStatusChange = (vehicleId, newStatus) => {
-    fetch(`http://localhost:5000/api/vehicles/${vehicleId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ status: newStatus })
-    })
-      .then(res => res.json())
-      .then(json => {
-        if (json.success && json.data) {
-          const updated = vehicles.map(v => v.id === vehicleId ? json.data : v);
-          onUpdateVehicles(updated);
-          triggerToast(`VIN status updated inline to: ${newStatus.toUpperCase()}`);
-        } else {
-          triggerToast(`Failed to update status: ${json.error || 'Server error'}`);
-        }
-      })
-      .catch(err => {
-        console.error('Error updating vehicle status:', err);
-        triggerToast('Failed to update status: Server connection error');
-      });
-  };
-
-  // Delete
-  const handleDelete = (vehicleId) => {
-    const confirmDelete = window.confirm("Are you sure you want to delete this vehicle from the inventory database?");
-    if (!confirmDelete) return;
-
-    fetch(`http://localhost:5000/api/vehicles/${vehicleId}`, {
-      method: 'DELETE'
-    })
+  const fetchVehicles = () => {
+    setIsLoading(true);
+    fetch('http://localhost:5000/api/vehicles')
       .then(res => res.json())
       .then(json => {
         if (json.success) {
-          const updated = vehicles.filter(v => v.id !== vehicleId);
-          onUpdateVehicles(updated);
-          triggerToast(`Vehicle removed from catalog.`);
-        } else {
-          triggerToast(`Failed to delete vehicle: ${json.error || 'Server error'}`);
+          setVehicles(json.data);
         }
+        setIsLoading(false);
       })
       .catch(err => {
-        console.error('Error deleting vehicle:', err);
-        triggerToast('Failed to delete vehicle: Server connection error');
+        console.error('Failed to load fleet:', err);
+        setIsLoading(false);
       });
   };
 
-  // Submit Add form
-  const [selectedImages, setSelectedImages] = useState([]);
-  const [isUploading, setIsUploading] = useState(false);
+  useEffect(() => {
+    fetchVehicles();
+  }, []);
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
@@ -111,6 +90,19 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
     });
   };
 
+  const handleEditImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    setNewEditImages([]);
+
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewEditImages(prev => [...prev, reader.result]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleAddVehicle = async (e) => {
     e.preventDefault();
     if (!make || !model || !price || !mileage) return;
@@ -119,7 +111,6 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
     let uploadedUrls = [];
 
     try {
-      // 1. Upload all selected images to Cloudinary via backend API
       const uploadPromises = selectedImages.map(imgBase64 => {
         return fetch('http://localhost:5000/api/upload', {
           method: 'POST',
@@ -160,18 +151,15 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
 
     fetch('http://localhost:5000/api/vehicles', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newVehicleData)
     })
       .then(res => res.json())
       .then(json => {
         setIsUploading(false);
         if (json.success && json.data) {
-          onUpdateVehicles([json.data, ...vehicles]);
+          setVehicles([json.data, ...vehicles]);
           setShowAddForm(false);
-          // Clear inputs
           setMake(''); setModel(''); setPrice(''); setMileage(''); setColor(''); setLocation(''); setSpecs(''); setConditionNotes('');
           setSelectedImages([]);
           triggerToast(`Added vehicle: ${make} ${model} to database.`);
@@ -181,36 +169,140 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
       })
       .catch(err => {
         setIsUploading(false);
-        console.error('Error creating vehicle:', err);
         triggerToast('Failed to add vehicle: Server connection error');
       });
   };
 
-  // Bulk Upload simulation
+  const handleEditClick = (v) => {
+    setEditVehicleId(v.id);
+    setEditMake(v.make);
+    setEditModel(v.model);
+    setEditYear(v.year);
+    setEditPrice(v.price.toString().replace(/[^0-9]/g, ''));
+    setEditMileage(v.mileage.toString().replace(/[^0-9]/g, ''));
+    setEditBodyType(v.bodyType || 'Coupe');
+    setEditColor(v.color || '');
+    setEditLocation(v.location || '');
+    setEditSpecs(v.specs ? v.specs.join(', ') : '');
+    setEditConditionNotes(v.conditionNotes || '');
+    setExistingImages(v.images || [v.thumbnailImage]);
+    setNewEditImages([]);
+  };
+
+  const handleUpdateVehicle = async (e) => {
+    e.preventDefault();
+    if (!editMake || !editModel || !editPrice || !editMileage) return;
+
+    setIsEditing(true);
+    let uploadedUrls = [];
+
+    try {
+      const uploadPromises = newEditImages.map(imgBase64 => {
+        return fetch('http://localhost:5000/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            file: imgBase64,
+            folder: 'vanguard_vehicles',
+            resourceType: 'image'
+          })
+        }).then(r => r.json());
+      });
+
+      const uploadResults = await Promise.all(uploadPromises);
+      uploadedUrls = uploadResults.filter(res => res.success).map(res => res.url);
+    } catch (err) {
+      console.error('Cloudinary upload failure:', err);
+    }
+
+    const mergedImages = [...existingImages, ...uploadedUrls];
+    const finalPrice = `$${Number(editPrice).toLocaleString()}`;
+    const finalMileage = `${Number(editMileage).toLocaleString()} mi`;
+
+    const updatedVehicleData = {
+      make: editMake,
+      model: editModel,
+      year: parseInt(editYear),
+      price: finalPrice,
+      mileage: finalMileage,
+      bodyType: editBodyType,
+      color: editColor,
+      location: editLocation,
+      specs: editSpecs ? editSpecs.split(',').map(s => s.trim()) : [],
+      conditionNotes: editConditionNotes,
+      thumbnailImage: mergedImages[0] || 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=80',
+      images: mergedImages
+    };
+
+    fetch(`http://localhost:5000/api/vehicles/${editVehicleId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedVehicleData)
+    })
+      .then(res => res.json())
+      .then(json => {
+        setIsEditing(false);
+        if (json.success && json.data) {
+          setVehicles(vehicles.map(v => v.id === editVehicleId ? json.data : v));
+          setEditVehicleId(null);
+          triggerToast('Vehicle updated successfully.');
+        } else {
+          triggerToast(`Failed to update vehicle: ${json.error}`);
+        }
+      })
+      .catch(err => {
+        setIsEditing(false);
+        triggerToast('Failed to update vehicle: Server connection error');
+      });
+  };
+
+  const handleStatusChange = (id, newStatus) => {
+    fetch(`http://localhost:5000/api/vehicles/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) {
+          setVehicles(vehicles.map(v => v.id === id ? { ...v, status: newStatus } : v));
+          triggerToast(`Vehicle status modified to: ${newStatus.toUpperCase()}`);
+        }
+      });
+  };
+
+  const handleDelete = (id) => {
+    if (!window.confirm('Delete this vehicle from registry inventory?')) return;
+
+    fetch(`http://localhost:5000/api/vehicles/${id}`, {
+      method: 'DELETE'
+    })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) {
+          setVehicles(vehicles.filter(v => v.id !== id));
+          triggerToast('Vehicle purged successfully.');
+        }
+      });
+  };
+
   const handleSimulateDragOver = (e) => {
     e.preventDefault();
   };
 
   const handleSimulateDrop = (e) => {
     e.preventDefault();
-    // Simulate parsing spreadsheet columns
     setBulkUploadedData([
-      { id: 901, make: 'Audi', model: 'R8 Coupe', year: 2022, price: '$145,000', mileage: '8,400 mi', status: 'available' },
-      { id: 902, make: 'Porsche', model: 'Taycan 4S', year: 2023, price: '$105,000', mileage: '4,200 mi', status: 'available' },
-      { id: 903, make: 'BMW', model: 'M4 Competition', year: 2021, price: '$74,000', mileage: '12,900 mi', status: 'available' }
+      { id: 45, make: 'Ferrari', model: 'SF90 Stradale', year: 2021, price: '$512,000', mileage: '940 mi', status: 'available' },
+      { id: 48, make: 'Lamborghini', model: 'Huracan Evo', year: 2022, price: '$284,000', mileage: '2,400 mi', status: 'available' },
+      { id: 50, make: 'McLaren', model: '720S Spider', year: 2020, price: '$269,000', mileage: '4,100 mi', status: 'available' }
     ]);
-    triggerToast(`CSV sheet parsed. Previewing 3 records.`);
   };
 
   const handleConfirmImport = () => {
     if (!bulkUploadedData) return;
-
-    const formattedImports = bulkUploadedData.map(item => ({
-      ...item,
-      bodyType: 'Coupe',
-      color: 'Midnight Black',
-      location: 'Miami Depot',
-      dateAdded: new Date().toISOString(),
+    const formattedImports = bulkUploadedData.map(v => ({
+      ...v,
       specs: ['Laser Headlights', 'Carbon Package'],
       conditionNotes: 'Import scan verified.',
       thumbnailImage: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=600&q=80',
@@ -222,14 +314,10 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
     triggerToast(`Imported 3 vehicles from sheet parser.`);
   };
 
-  if (isLoading) {
-    return <TableSkeleton rows={4} cols={4} />;
-  }
+  if (isLoading) return <TableSkeleton rows={4} cols={4} />;
 
   return (
     <div className="space-y-8 text-left relative">
-      
-      {/* Toast Notification */}
       {toastMsg && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 bg-charcoal text-white text-xs font-mono uppercase tracking-widest px-6 py-4 border border-brand-red/30 shadow-2xl">
           {toastMsg}
@@ -243,9 +331,6 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
           <h2 className="text-xl md:text-2xl font-display font-extrabold text-charcoal uppercase leading-none">
             Inventory Registry
           </h2>
-          <p className="text-[11px] text-neutral-400 font-sans mt-1">
-            Perform vehicle CRUD updates, edit inline status dropdowns, or simulate bulk CSV uploads.
-          </p>
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
@@ -318,13 +403,18 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
             </div>
 
             <div className="flex flex-col gap-1 md:col-span-3">
+              <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Condition Remarks</label>
+              <textarea rows={2} placeholder="Inspect notes..." value={conditionNotes} onChange={(e) => setConditionNotes(e.target.value)} className="bg-light-bg border border-border-hairline p-3 text-xs text-charcoal outline-hidden focus:border-brand-red resize-none" />
+            </div>
+
+            <div className="flex flex-col gap-1 md:col-span-3">
               <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Upload Vehicle Photos (Multiple)</label>
               <input 
                 type="file" 
                 multiple 
                 accept="image/*" 
                 onChange={handleImageChange} 
-                className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red w-full" 
+                className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red w-full cursor-pointer" 
               />
               {selectedImages.length > 0 && (
                 <div className="text-[8px] font-mono text-green-600 mt-1">
@@ -344,70 +434,109 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
         </div>
       )}
 
-      {/* Bulk spreadsheet upload simulator */}
-      <div className="bg-white border border-border-hairline p-5 shadow-xs text-left">
-        <span className="font-display font-bold text-xs uppercase tracking-wider text-charcoal mb-3 block flex items-center gap-1.5">
-          <FileSpreadsheet className="w-4.5 h-4.5 text-neutral-400" />
-          <span>Spreadsheet Bulk Import Console</span>
-        </span>
-
-        {!bulkUploadedData ? (
-          <div 
-            onDragOver={handleSimulateDragOver}
-            onDrop={handleSimulateDrop}
-            onClick={handleSimulateDrop}
-            className="border-2 border-dashed border-neutral-200 hover:border-brand-red bg-light-bg/40 p-8 text-center rounded-xs cursor-pointer transition-colors"
-          >
-            <UploadCloud className="w-8 h-8 text-neutral-300 mx-auto mb-2" />
-            <span className="text-xs text-neutral-400 block font-sans">
-              Drag and drop vehicle CSV spreadsheet here or <span className="text-brand-red font-semibold hover:underline">Click to simulate upload</span>
-            </span>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center bg-amber-50 text-amber-800 border border-amber-200 p-3 rounded-xs text-xs font-sans">
-              <span>Previewing parsed sheet records. Verify values before bulk insert.</span>
-              <button onClick={() => setBulkUploadedData(null)} className="text-neutral-500 hover:text-brand-red">
+      {/* Edit Vehicle Modal */}
+      {editVehicleId && (
+        <>
+          <div className="fixed inset-0 bg-black/60 z-40" onClick={() => setEditVehicleId(null)} />
+          <form onSubmit={handleUpdateVehicle} className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white border border-border-hairline p-6 shadow-2xl z-50 text-left space-y-4 max-h-[85vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-neutral-100 pb-3">
+              <span className="font-display font-bold text-xs uppercase tracking-wider text-charcoal">Edit Vehicle Details</span>
+              <button type="button" onClick={() => setEditVehicleId(null)} className="text-neutral-400 hover:text-brand-red cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-neutral-200 text-[8px] font-mono text-neutral-400 uppercase tracking-widest">
-                    <th className="pb-2">ID</th>
-                    <th className="pb-2">Vehicle</th>
-                    <th className="pb-2">Price</th>
-                    <th className="pb-2">Mileage</th>
-                    <th className="pb-2 text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bulkUploadedData.map(row => (
-                    <tr key={row.id} className="border-b border-neutral-50 last:border-0 font-mono text-[10px]">
-                      <td className="py-2">#{row.id}</td>
-                      <td className="py-2 text-charcoal font-semibold">{row.make} {row.model} ({row.year})</td>
-                      <td className="py-2 text-brand-red font-semibold">{row.price}</td>
-                      <td className="py-2 text-neutral-500">{row.mileage}</td>
-                      <td className="py-2 text-right text-green-600 font-bold uppercase">{row.status}</td>
-                    </tr>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Make</label>
+                <input required type="text" value={editMake} onChange={e => setEditMake(e.target.value)} className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Model</label>
+                <input required type="text" value={editModel} onChange={e => setEditModel(e.target.value)} className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Year</label>
+                <input required type="number" value={editYear} onChange={e => setEditYear(e.target.value)} className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Price ($ USD)</label>
+                <input required type="number" value={editPrice} onChange={e => setEditPrice(e.target.value)} className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Mileage (Miles)</label>
+                <input required type="number" value={editMileage} onChange={e => setEditMileage(e.target.value)} className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Body Type</label>
+                <select value={editBodyType} onChange={e => setEditBodyType(e.target.value)} className="bg-white border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red cursor-pointer">
+                  <option value="Coupe">Coupe</option>
+                  <option value="Sedan">Sedan</option>
+                  <option value="SUV">SUV</option>
+                  <option value="Supercar">Supercar</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Color</label>
+                <input type="text" value={editColor} onChange={e => setEditColor(e.target.value)} className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Location</label>
+                <input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)} className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red" />
+              </div>
+              <div className="flex flex-col gap-1 md:col-span-2">
+                <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Specs (comma-separated)</label>
+                <input type="text" value={editSpecs} onChange={e => setEditSpecs(e.target.value)} className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red" />
+              </div>
+              <div className="flex flex-col gap-1 md:col-span-2">
+                <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Condition Remarks</label>
+                <textarea rows={2} value={editConditionNotes} onChange={e => setEditConditionNotes(e.target.value)} className="bg-light-bg border border-border-hairline p-3 text-xs text-charcoal outline-hidden focus:border-brand-red resize-none" />
+              </div>
+
+              {/* Edit Existing Images list & upload option */}
+              <div className="md:col-span-2 space-y-2">
+                <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold block">Add More Vehicle Photos</label>
+                <input 
+                  type="file" 
+                  multiple 
+                  accept="image/*" 
+                  onChange={handleEditImageChange} 
+                  className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red w-full cursor-pointer" 
+                />
+                
+                {/* Existing Images preview */}
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {existingImages.map((url, idx) => (
+                    <div key={idx} className="relative w-16 h-12 bg-neutral-100 border border-neutral-200">
+                      <img src={url} className="w-full h-full object-cover" />
+                      <button 
+                        type="button" 
+                        onClick={() => setExistingImages(existingImages.filter((_, i) => i !== idx))}
+                        className="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full p-0.5 hover:bg-red-700 cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                  {newEditImages.length > 0 && (
+                    <div className="text-[8px] font-mono text-green-600 self-center">
+                      + {newEditImages.length} new photos pending upload.
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => setBulkUploadedData(null)} className="border border-neutral-200 hover:bg-neutral-50 text-neutral-500 text-[10px] font-mono uppercase tracking-widest px-4 py-2 cursor-pointer">
-                Cancel
-              </button>
-              <button onClick={handleConfirmImport} className="bg-brand-red hover:bg-brand-red-hover text-white text-[10px] font-mono uppercase tracking-widest px-5 py-2 cursor-pointer shadow-xs">
-                Import 3 Vehicles
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+            <button 
+              type="submit" 
+              disabled={isEditing}
+              className="w-full bg-brand-red hover:bg-brand-red-hover disabled:bg-neutral-400 text-white text-xs font-bold uppercase tracking-widest py-3 cursor-pointer transition-colors"
+            >
+              {isEditing ? 'Uploading images to Cloudinary & Saving...' : 'Save Fleet Updates'}
+            </button>
+          </form>
+        </>
+      )}
 
       {/* Inventory table */}
       <div className="bg-white border border-border-hairline shadow-xs overflow-hidden">
@@ -470,6 +599,13 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
                       {/* Actions */}
                       <td className="py-4 px-6 text-right flex items-center justify-end gap-2.5 h-16">
                         <button
+                          onClick={() => handleEditClick(v)}
+                          className="p-1.5 border border-neutral-200 text-neutral-400 hover:text-brand-red hover:bg-neutral-50 cursor-pointer flex items-center justify-center"
+                          title="Edit Vehicle Details"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
                           onClick={() => setExpandedRowId(isExpanded ? null : v.id)}
                           className="p-1.5 border border-neutral-200 text-neutral-400 hover:text-charcoal hover:bg-neutral-50 cursor-pointer flex items-center justify-center"
                           title="Inspect Documents & Specs"
@@ -508,33 +644,17 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
                               <p className="text-neutral-600 italic font-sans mt-1">{v.conditionNotes}</p>
                             </div>
 
-                            {/* Mock photos / inspection logs */}
+                            {/* Additional Photos gallery */}
                             <div>
                               <span className="font-display font-bold text-[9px] uppercase tracking-wider text-charcoal mb-2.5 block">
-                                Files & Asset checks
+                                Photo Gallery Archive ({v.images?.length || 0})
                               </span>
-                              
-                              <div className="space-y-2 font-mono text-[9px] uppercase text-neutral-500 tracking-wider">
-                                <div className="flex justify-between items-center bg-white border border-neutral-100 p-2 rounded-2xs">
-                                  <span className="flex items-center gap-1.5">
-                                    <FileText className="w-3.5 h-3.5 text-neutral-400" />
-                                    <span>Vanguard_Inspection_Certificate.pdf</span>
-                                  </span>
-                                  <span className="text-green-600 font-bold">Approved</span>
-                                </div>
-                                <div className="flex justify-between items-center bg-white border border-neutral-100 p-2 rounded-2xs">
-                                  <span className="flex items-center gap-1.5">
-                                    <FileText className="w-3.5 h-3.5 text-neutral-400" />
-                                    <span>Clear_Title_Verification.pdf</span>
-                                  </span>
-                                  <span className="text-green-600 font-bold">Approved</span>
-                                </div>
-                              </div>
-
-                              <div className="mt-3.5 flex gap-2">
-                                <button onClick={() => triggerToast('Mock asset log registered.')} className="border border-neutral-200 hover:border-charcoal bg-white text-charcoal text-[9px] font-mono uppercase tracking-widest px-3 py-1.5 cursor-pointer">
-                                  Add Document Scan
-                                </button>
+                              <div className="flex flex-wrap gap-2">
+                                {v.images?.map((url, index) => (
+                                  <a key={index} href={url} target="_blank" rel="noreferrer" className="w-16 h-12 bg-neutral-100 rounded-xs overflow-hidden border border-neutral-200 hover:border-brand-red transition-all">
+                                    <img src={url} className="w-full h-full object-cover" />
+                                  </a>
+                                ))}
                               </div>
                             </div>
 
