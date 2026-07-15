@@ -12,7 +12,7 @@ import {
   Edit2
 } from 'lucide-react';
 
-export default function AdminInventory() {
+export default function AdminInventory({ inventoryFilter = 'all' }) {
   const [vehicles, setVehicles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [toastMsg, setToastMsg] = useState('');
@@ -436,9 +436,8 @@ export default function AdminInventory() {
 
       {/* Edit Vehicle Modal */}
       {editVehicleId && (
-        <>
-          <div className="fixed inset-0 bg-black/60 z-40" onClick={() => setEditVehicleId(null)} />
-          <form onSubmit={handleUpdateVehicle} className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white border border-border-hairline p-6 shadow-2xl z-50 text-left space-y-4 max-h-[85vh] overflow-y-auto">
+        <div className="fixed inset-0 overflow-y-auto z-50 flex items-center justify-center p-4 bg-black/60">
+          <form onSubmit={handleUpdateVehicle} className="relative w-full max-w-2xl bg-white border border-border-hairline p-6 shadow-2xl text-left space-y-4 my-8">
             <div className="flex justify-between items-center border-b border-neutral-100 pb-3">
               <span className="font-display font-bold text-xs uppercase tracking-wider text-charcoal">Edit Vehicle Details</span>
               <button type="button" onClick={() => setEditVehicleId(null)} className="text-neutral-400 hover:text-brand-red cursor-pointer">
@@ -535,7 +534,7 @@ export default function AdminInventory() {
               {isEditing ? 'Uploading images to Cloudinary & Saving...' : 'Save Fleet Updates'}
             </button>
           </form>
-        </>
+        </div>
       )}
 
       {/* Inventory table */}
@@ -553,25 +552,30 @@ export default function AdminInventory() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border-hairline text-xs">
-              {vehicles.map((v) => {
-                const isExpanded = expandedRowId === v.id;
-                return (
-                  <React.Fragment key={v.id}>
-                    <tr className="hover:bg-neutral-50/50 transition-colors">
-                      {/* Image */}
-                      <td className="py-4 px-6">
-                        <div className="w-12 h-8 bg-neutral-100 rounded-sm overflow-hidden shrink-0 border border-neutral-200/50">
-                          <img src={v.thumbnailImage} alt={v.model} className="w-full h-full object-cover" />
-                        </div>
-                      </td>
+              {vehicles
+                .filter(v => {
+                  if (inventoryFilter === 'all') return true;
+                  return v.status === inventoryFilter;
+                })
+                .map((v) => {
+                  const isExpanded = expandedRowId === v.id;
+                  return (
+                    <React.Fragment key={v.id}>
+                      <tr className="hover:bg-neutral-50/50 transition-colors">
+                        {/* Image */}
+                        <td className="py-4 px-6">
+                          <div className="w-12 h-8 bg-neutral-100 rounded-sm overflow-hidden shrink-0 border border-neutral-200/50">
+                            <img src={v.thumbnailImage} alt={v.model} className="w-full h-full object-cover" />
+                          </div>
+                        </td>
 
-                      {/* Info */}
-                      <td className="py-4 px-6 font-medium text-charcoal">
-                        <span className="font-display font-bold uppercase tracking-wider text-[11px] block">
-                          {v.make} {v.model}
-                        </span>
-                        <span className="text-[8px] font-mono text-neutral-400 block uppercase mt-0.5">Year: {v.year} | Ref: VIN-{v.id}</span>
-                      </td>
+                        {/* Info */}
+                        <td className="py-4 px-6 font-medium text-charcoal">
+                          <span className="font-display font-bold uppercase tracking-wider text-[11px] block">
+                            {v.make} {v.model}
+                          </span>
+                          <span className="text-[8px] font-mono text-neutral-400 block uppercase mt-0.5">Year: {v.year} | Ref: VIN-{v.id}</span>
+                        </td>
 
                       {/* Price */}
                       <td className="py-4 px-6 font-display font-bold text-brand-red text-xs">

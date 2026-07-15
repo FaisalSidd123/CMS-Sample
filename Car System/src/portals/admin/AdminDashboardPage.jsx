@@ -27,6 +27,7 @@ export default function AdminDashboardPage({
   onUpdateAudit
 }) {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [inventoryFilter, setInventoryFilter] = useState('all');
 
   const renderContent = () => {
     switch (activeTab) {
@@ -37,6 +38,7 @@ export default function AdminDashboardPage({
           <AdminInventory 
             sharedVehicles={sharedVehicles} 
             onUpdateVehicles={onUpdateVehicles} 
+            inventoryFilter={inventoryFilter}
           />
         );
       case 'leads':
@@ -68,7 +70,12 @@ export default function AdminDashboardPage({
   };
 
   return (
-    <AdminShell activeTab={activeTab} onTabChange={setActiveTab}>
+    <AdminShell 
+      activeTab={activeTab} 
+      onTabChange={setActiveTab}
+      inventoryFilter={inventoryFilter}
+      onFilterChange={setInventoryFilter}
+    >
       {renderContent()}
     </AdminShell>
   );
