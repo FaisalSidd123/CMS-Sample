@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TableSkeleton } from '../../../components/Skeletons';
 import { Plus, X, Clock, AlertTriangle, FileText, Download } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 
 export default function AdminReservations() {
   const [reservations, setReservations] = useState([]);
@@ -146,39 +147,76 @@ export default function AdminReservations() {
       : parseInt(rawPrice.toString().replace(/[^0-9]/g, '')) || 50000;
     const balance = numericPrice - parseFloat(res.deposit_amount);
 
-    // Generate Invoice HTML template string
-    const invoiceTemplateHtml = `
-      <div style="font-family: monospace; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; background: #fff;">
-        <h2 style="text-transform: uppercase; color: #DC2626;">Vanguard Motors - Escrow Invoice</h2>
-        <hr style="border: 0; border-top: 1px solid #eee;" />
-        <p><strong>Invoice ID:</strong> ${invoiceId}</p>
-        <p><strong>Issue Date:</strong> ${new Date().toLocaleDateString()}</p>
-        <p><strong>Client Name:</strong> ${res.leads?.name}</p>
-        <p><strong>Client Email:</strong> ${res.leads?.email}</p>
-        <hr style="border: 0; border-top: 1px solid #eee;" />
-        <h4 style="text-transform: uppercase;">Vehicle Specifications</h4>
-        <p><strong>Asset:</strong> ${res.vehicles?.year} ${res.vehicles?.make} ${res.vehicles?.model}</p>
-        <p><strong>Retail Price:</strong> ${res.vehicles?.price}</p>
-        <p><strong>Hold Deposit Paid:</strong> $${Number(res.deposit_amount).toLocaleString()}</p>
-        <p style="font-size: 14px; font-weight: bold; color: #111;"><strong>Outstanding Balance Due:</strong> $${balance.toLocaleString()}</p>
-        <hr style="border: 0; border-top: 1px solid #eee;" />
-        <p style="font-size: 9px; color: #888;">Thank you for your business. Wire details are attached in document archives.</p>
-      </div>
-    `;
+    // Initialize jsPDF document
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
 
-    // 1. Upload this Generated invoice template to Cloudinary as raw text/html
-    const base64Invoice = `data:text/html;base64,${btoa(unescape(encodeURIComponent(invoiceTemplateHtml)))}`;
+    // Header styling
+    doc.setFont('courier', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(220, 38, 38); // Vanguard Red
+    doc.text("VANGUARD MOTORS - ESCROW INVOICE", 20, 20);
 
-    fetch('http://localhost:5000/api/upload', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        file: base64Invoice,
-        folder: 'vanguard_invoices',
-        resourceType: 'raw' // saves it as a clear static HTML page
+    // Divider Line
+    doc.setLineWidth(0.4);
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, 24, 190, 24);
+
+    // Metadata Section
+    doc.setFont('courier', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 60);
+    doc.text(`Invoice Reference: ${invoiceId}`, 20, 32);
+    doc.text(`Issue Date:        ${new Date().toLocaleDateString()}`, 20, 38);
+    doc.text(`Client File Name:  ${res.leads?.name || 'Escrow Account'}`, 20, 44);
+    doc.text(`Client Email:      ${res.leads?.email || 'N/A'}`, 20, 50);
+
+    doc.line(20, 56, 190, 56);
+
+    // Specifications Section
+    doc.setFont('courier', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(40, 40, 40);
+    doc.text("VEHICLE PORTFOLIO SPECIFICATIONS", 20, 64);
+    
+    doc.setFont('courier', 'normal');
+    doc.setFontSize(9);
+    doc.text(`Asset Description:       ${res.vehicles?.year} ${res.vehicles?.make} ${res.vehicles?.model}`, 20, 72);
+    doc.text(`Reference VIN:           VIN-${res.vehicles?.id}`, 20, 78);
+    doc.text(`Retail Cost:             ${typeof rawPrice === 'number' ? `$${rawPrice.toLocaleString()}` : rawPrice}`, 20, 84);
+    doc.text(`Hold Deposit Credited:   $${Number(res.deposit_amount).toLocaleString()}`, 20, 90);
+
+    doc.setFont('courier', 'bold');
+    doc.text(`OUTSTANDING BALANCE DUE: $${balance.toLocaleString()}`, 20, 99);
+
+    doc.line(20, 106, 190, 106);
+    
+    doc.setFont('courier', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(120, 120, 120);
+    // Generate PDF as a native binary Blob
+    const pdfBlob = doc.output('blob');
+
+    // Convert Blob to perfect Base64 Data URL natively in the browser
+    const reader = new FileReader();
+    reader.readAsDataURL(pdfBlob);
+    reader.onloadend = () => {
+      const cleanPdfDataUri = reader.result;
+
+      // 1. Upload generated PDF to Cloudinary
+      fetch('http://localhost:5000/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file: cleanPdfDataUri,
+          folder: 'vanguard_invoices',
+          resourceType: 'auto'
+        })
       })
-    })
-      .then(r => r.json())
+        .then(r => r.json())
       .then(uploadRes => {
         if (!uploadRes.success) {
           triggerToast(`Upload failure: ${uploadRes.error}`);
@@ -200,7 +238,7 @@ export default function AdminReservations() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            title: `Vanguard_Invoice_${invoiceId}.html`,
+            title: `Vanguard_Invoice_${invoiceId}.pdf`,
             document_type: 'invoice',
             file_url: secureUrl,
             vehicle_id: res.vehicle_id,
@@ -213,7 +251,7 @@ export default function AdminReservations() {
           .then(([resUpdateJson, docJson]) => {
             setIsGenerating(false);
             if (resUpdateJson.success) {
-              triggerToast('Invoice generated, saved in DB, and archived in Documents!');
+              triggerToast('Official PDF Invoice generated and archived!');
               fetchDependenciesAndReservations();
             } else {
               triggerToast(`Failed to link invoice: ${resUpdateJson.error}`);
@@ -225,6 +263,7 @@ export default function AdminReservations() {
         setIsGenerating(false);
         triggerToast('Network error generating invoice.');
       });
+    };
   };
 
   if (isLoading) return <TableSkeleton rows={4} cols={5} />;
