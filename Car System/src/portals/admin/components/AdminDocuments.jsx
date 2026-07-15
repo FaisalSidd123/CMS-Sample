@@ -2,22 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { TableSkeleton } from '../../../components/Skeletons';
 import { 
   FolderOpen, 
-  Check, 
-  X, 
-  FileText, 
   Download, 
-  Clock, 
   Send
 } from 'lucide-react';
 
 export default function AdminDocuments() {
   const [docs, setDocs] = useState([]);
   const [leads, setLeads] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [toastMsg, setToastMsg] = useState('');
 
   // Form states
   const [selectedLead, setSelectedLead] = useState('');
+  const [selectedVehicle, setSelectedVehicle] = useState('');
   const [docType, setDocType] = useState('invoice');
   const [title, setTitle] = useState('');
   
@@ -31,25 +29,27 @@ export default function AdminDocuments() {
     setTimeout(() => setToastMsg(''), 3000);
   };
 
-  const fetchDocsAndLeads = () => {
+  const fetchDependencies = () => {
     setIsLoading(true);
     const fetchDocs = fetch('http://localhost:5000/api/documents').then(r => r.json());
     const fetchLeads = fetch('http://localhost:5000/api/leads').then(r => r.json());
+    const fetchVehicles = fetch('http://localhost:5000/api/vehicles').then(r => r.json());
 
-    Promise.all([fetchDocs, fetchLeads])
-      .then(([docJson, leadJson]) => {
+    Promise.all([fetchDocs, fetchLeads, fetchVehicles])
+      .then(([docJson, leadJson, vehicleJson]) => {
         if (docJson.success) setDocs(docJson.data);
         if (leadJson.success) setLeads(leadJson.data);
+        if (vehicleJson.success) setVehicles(vehicleJson.data);
         setIsLoading(false);
       })
       .catch(err => {
-        console.error('Failed to load documents registry:', err);
+        console.error('Failed to load document dependencies:', err);
         setIsLoading(false);
       });
   };
 
   useEffect(() => {
-    fetchDocsAndLeads();
+    fetchDependencies();
   }, []);
 
   const handleFileChange = (e) => {
@@ -76,14 +76,13 @@ export default function AdminDocuments() {
     let uploadedFileUrl = '';
 
     try {
-      // 1. Upload to Cloudinary via backend
       const uploadRes = await fetch('http://localhost:5000/api/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           file: selectedFileBase64,
           folder: 'vanguard_documents',
-          resourceType: 'auto' // handles PDFs, images, raw files
+          resourceType: 'auto'
         })
       }).then(r => r.json());
 
@@ -101,13 +100,13 @@ export default function AdminDocuments() {
       return;
     }
 
-    // 2. Save document record to DB
     const payload = {
       title,
-      document_type: docType, // will be 'invoice' or 'contract'
+      document_type: docType,
       file_url: uploadedFileUrl,
       lead_id: parseInt(selectedLead),
-      status: 'completed' // conformed to database CHECK (status IN ('draft', 'completed'))
+      vehicle_id: selectedVehicle ? parseInt(selectedVehicle) : null,
+      status: 'completed'
     };
 
     fetch('http://localhost:5000/api/documents', {
@@ -122,9 +121,10 @@ export default function AdminDocuments() {
           triggerToast('Document uploaded to Cloudinary & registered successfully.');
           setTitle('');
           setSelectedLead('');
+          setSelectedVehicle('');
           setSelectedFileBase64('');
           setFileName('');
-          fetchDocsAndLeads();
+          fetchDependencies();
         } else {
           triggerToast(`Database save error: ${json.error}`);
         }
@@ -170,29 +170,37 @@ export default function AdminDocuments() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-neutral-100 text-[8px] font-mono text-neutral-400 uppercase tracking-widest select-none">
-                  <th className="pb-3 font-semibold">Client Folder</th>
-                  <th className="pb-3 font-semibold">File Type</th>
-                  <th className="pb-3 font-semibold">File Name</th>
-                  <th className="pb-3 font-semibold">Issued Date</th>
-                  <th className="pb-3 font-semibold text-right">Download</th>
+                <tr className="bg-neutral-50 border-b border-border-hairline text-[8px] font-mono text-neutral-400 uppercase tracking-widest select-none">
+                  <th className="py-3 px-4 font-semibold">Client Folder</th>
+                  <th className="py-3 px-4 font-semibold">Linked Car</th>
+                  <th className="py-3 px-4 font-semibold">File Type</th>
+                  <th className="py-3 px-4 font-semibold">File Name</th>
+                  <th className="py-3 px-4 font-semibold text-right">Download</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100">
                 {docs.map((doc) => (
                   <tr key={doc.id} className="border-b border-neutral-50 last:border-0 hover:bg-neutral-50/50 transition-colors">
-                    <td className="py-3 font-display font-bold uppercase text-[11px] text-charcoal">
+                    <td className="py-3.5 px-4 font-display font-bold uppercase text-[11px] text-charcoal">
                       {doc.leads?.name || 'Vanguard Escrow'}
                     </td>
-                    <td className="py-3 text-neutral-400 font-mono uppercase text-[9px]">{doc.document_type}</td>
-                    <td className="py-3 text-neutral-600 font-mono break-all">{doc.title}</td>
-                    <td className="py-3 text-neutral-400 font-mono">{new Date(doc.created_at).toLocaleDateString()}</td>
-                    <td className="py-3 text-right">
+                    <td className="py-3.5 px-4">
+                      {doc.vehicles ? (
+                        <span className="font-display font-semibold uppercase text-[10px] text-neutral-600 block">
+                          {doc.vehicles.make} {doc.vehicles.model}
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-mono text-neutral-400 block uppercase">No Car Associated</span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4 text-neutral-400 font-mono uppercase text-[9px]">{doc.document_type}</td>
+                    <td className="py-3.5 px-4 text-neutral-600 font-mono break-all">{doc.title}</td>
+                    <td className="py-3.5 px-4 text-right">
                       <a 
                         href={doc.file_url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="p-1 border border-neutral-200 text-neutral-400 hover:text-brand-red cursor-pointer flex items-center justify-center rounded-2xs inline-flex"
+                        className="p-1.5 border border-neutral-200 text-neutral-400 hover:text-brand-red cursor-pointer flex items-center justify-center rounded-2xs inline-flex"
                       >
                         <Download className="w-3.5 h-3.5" />
                       </a>
@@ -232,6 +240,21 @@ export default function AdminDocuments() {
                 <option value="">-- Choose Lead --</option>
                 {leads.map(l => (
                   <option key={l.id} value={l.id}>{l.name} ({l.email})</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Select Vehicle */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Associate Vehicle / Car</label>
+              <select
+                value={selectedVehicle}
+                onChange={(e) => setSelectedVehicle(e.target.value)}
+                className="bg-white border border-neutral-200 px-3 py-2.5 text-xs text-charcoal outline-hidden focus:border-brand-red cursor-pointer"
+              >
+                <option value="">-- Optional: Choose Car --</option>
+                {vehicles.map(v => (
+                  <option key={v.id} value={v.id}>{v.make} {v.model} ({v.year})</option>
                 ))}
               </select>
             </div>
