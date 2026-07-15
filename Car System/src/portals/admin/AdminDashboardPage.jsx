@@ -45,8 +45,6 @@ export default function AdminDashboardPage({
         return <AdminLeads sharedAgents={sharedAgents} />;
       case 'reservations':
         return <AdminReservations />;
-      case 'imports':
-        return <AdminImports />;
       case 'payments':
         return <AdminPayments />;
       case 'service':

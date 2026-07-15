@@ -63,7 +63,6 @@ export default function AdminShell({
     { label: 'Inventory', id: 'inventory', icon: Car, hasSubmenu: true },
     { label: 'Leads', id: 'leads', icon: Users, badge: 9 },
     { label: 'Reservations', id: 'reservations', icon: CalendarRange },
-    { label: 'Imports', id: 'imports', icon: UploadCloud, badge: 7 },
     { label: 'Payments', id: 'payments', icon: DollarSign, badge: 6 },
     { label: 'Service', id: 'service', icon: Wrench, badge: 6 },
     { label: 'Sales Team', id: 'salesteam', icon: UserCheck },

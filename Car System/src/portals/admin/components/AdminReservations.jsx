@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TableSkeleton } from '../../../components/Skeletons';
-import { CalendarRange, Plus, X, Clock, AlertTriangle } from 'lucide-react';
+import { Plus, X, Clock, AlertTriangle, FileText, Download } from 'lucide-react';
 
 export default function AdminReservations() {
   const [reservations, setReservations] = useState([]);
@@ -22,6 +22,9 @@ export default function AdminReservations() {
   const [cancelResId, setCancelResId] = useState(null);
   const [cancelReasonText, setCancelReasonText] = useState('');
 
+  // Invoice Generation State
+  const [isGenerating, setIsGenerating] = useState(false);
+
   const triggerToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 3000);
@@ -38,7 +41,6 @@ export default function AdminReservations() {
       .then(([resJson, vJson, lJson, aJson]) => {
         if (resJson.success) setReservations(resJson.data);
         if (vJson.success) {
-          // Filter to only display available vehicles in selection dropdown
           const availableCars = vJson.data.filter(c => c.status === 'available');
           setVehicles(availableCars);
         }
@@ -67,7 +69,8 @@ export default function AdminReservations() {
       deposit_amount: parseFloat(deposit),
       status: 'confirmed',
       hold_expires_at: new Date(holdExpiresAt).toISOString(),
-      cancellation_reason: null
+      cancellation_reason: null,
+      invoice: null
     };
 
     fetch('http://localhost:5000/api/reservations', {
@@ -91,13 +94,11 @@ export default function AdminReservations() {
 
   const handleUpdateStatus = (resId, nextStatus) => {
     if (nextStatus === 'cancelled') {
-      // Trigger reason dialog
       setCancelResId(resId);
       setCancelReasonText('');
       return;
     }
 
-    // Direct update for other statuses
     fetch(`http://localhost:5000/api/reservations/${resId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -128,6 +129,101 @@ export default function AdminReservations() {
           setCancelResId(null);
           fetchDependenciesAndReservations();
         }
+      });
+  };
+
+  const handleGenerateInvoice = (res) => {
+    if (res.invoice) {
+      triggerToast('Invoice already exists for this reservation.');
+      return;
+    }
+
+    setIsGenerating(true);
+    const invoiceId = `INV-${res.id}-${Math.floor(100 + Math.random() * 900)}`;
+    const rawPrice = res.vehicles?.price !== undefined && res.vehicles?.price !== null ? res.vehicles.price : 50000;
+    const numericPrice = typeof rawPrice === 'number' 
+      ? rawPrice 
+      : parseInt(rawPrice.toString().replace(/[^0-9]/g, '')) || 50000;
+    const balance = numericPrice - parseFloat(res.deposit_amount);
+
+    // Generate Invoice HTML template string
+    const invoiceTemplateHtml = `
+      <div style="font-family: monospace; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; background: #fff;">
+        <h2 style="text-transform: uppercase; color: #DC2626;">Vanguard Motors - Escrow Invoice</h2>
+        <hr style="border: 0; border-top: 1px solid #eee;" />
+        <p><strong>Invoice ID:</strong> ${invoiceId}</p>
+        <p><strong>Issue Date:</strong> ${new Date().toLocaleDateString()}</p>
+        <p><strong>Client Name:</strong> ${res.leads?.name}</p>
+        <p><strong>Client Email:</strong> ${res.leads?.email}</p>
+        <hr style="border: 0; border-top: 1px solid #eee;" />
+        <h4 style="text-transform: uppercase;">Vehicle Specifications</h4>
+        <p><strong>Asset:</strong> ${res.vehicles?.year} ${res.vehicles?.make} ${res.vehicles?.model}</p>
+        <p><strong>Retail Price:</strong> ${res.vehicles?.price}</p>
+        <p><strong>Hold Deposit Paid:</strong> $${Number(res.deposit_amount).toLocaleString()}</p>
+        <p style="font-size: 14px; font-weight: bold; color: #111;"><strong>Outstanding Balance Due:</strong> $${balance.toLocaleString()}</p>
+        <hr style="border: 0; border-top: 1px solid #eee;" />
+        <p style="font-size: 9px; color: #888;">Thank you for your business. Wire details are attached in document archives.</p>
+      </div>
+    `;
+
+    // 1. Upload this Generated invoice template to Cloudinary as raw text/html
+    const base64Invoice = `data:text/html;base64,${btoa(unescape(encodeURIComponent(invoiceTemplateHtml)))}`;
+
+    fetch('http://localhost:5000/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        file: base64Invoice,
+        folder: 'vanguard_invoices',
+        resourceType: 'raw' // saves it as a clear static HTML page
+      })
+    })
+      .then(r => r.json())
+      .then(uploadRes => {
+        if (!uploadRes.success) {
+          triggerToast(`Upload failure: ${uploadRes.error}`);
+          setIsGenerating(false);
+          return;
+        }
+
+        const secureUrl = uploadRes.url;
+
+        // 2. Save this URL to the reservations table invoice column
+        const updateRes = fetch(`http://localhost:5000/api/reservations/${res.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invoice: secureUrl })
+        }).then(r => r.json());
+
+        // 3. Also log it inside the documents table under 'invoice' type
+        const createDoc = fetch('http://localhost:5000/api/documents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: `Vanguard_Invoice_${invoiceId}.html`,
+            document_type: 'invoice',
+            file_url: secureUrl,
+            vehicle_id: res.vehicle_id,
+            lead_id: res.lead_id,
+            status: 'completed'
+          })
+        }).then(r => r.json());
+
+        Promise.all([updateRes, createDoc])
+          .then(([resUpdateJson, docJson]) => {
+            setIsGenerating(false);
+            if (resUpdateJson.success) {
+              triggerToast('Invoice generated, saved in DB, and archived in Documents!');
+              fetchDependenciesAndReservations();
+            } else {
+              triggerToast(`Failed to link invoice: ${resUpdateJson.error}`);
+            }
+          });
+      })
+      .catch(err => {
+        console.error('Invoice generation error:', err);
+        setIsGenerating(false);
+        triggerToast('Network error generating invoice.');
       });
   };
 
@@ -283,11 +379,30 @@ export default function AdminReservations() {
                       </div>
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-3">
+                        {res.invoice ? (
+                          <a 
+                            href={res.invoice} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="bg-green-600 hover:bg-green-700 text-white text-[9px] font-bold uppercase tracking-wider px-2 py-1.5 cursor-pointer inline-flex items-center gap-1 transition-colors"
+                          >
+                            <Download className="w-3 h-3" /> View Invoice
+                          </a>
+                        ) : (
+                          <button
+                            disabled={isGenerating}
+                            onClick={() => handleGenerateInvoice(res)}
+                            className="bg-charcoal hover:bg-neutral-800 disabled:bg-neutral-400 text-white text-[9px] font-bold uppercase tracking-wider px-2.5 py-1.5 cursor-pointer inline-flex items-center gap-1 transition-colors"
+                          >
+                            <FileText className="w-3 h-3" /> Generate Invoice
+                          </button>
+                        )}
+
                         <select
                           value={res.status}
                           onChange={e => handleUpdateStatus(res.id, e.target.value)}
-                          className="bg-transparent border border-neutral-200 text-xs py-1 px-2 outline-hidden cursor-pointer font-mono font-bold uppercase text-[9px]"
+                          className="bg-transparent border border-neutral-200 text-xs py-1.5 px-2 outline-hidden cursor-pointer font-mono font-bold uppercase text-[9px]"
                         >
                           <option value="pending">Pending</option>
                           <option value="confirmed">Confirmed</option>

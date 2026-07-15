@@ -11,26 +11,27 @@ export default function SearchFilter({ inventory = [], onSearch }) {
   const [selectedBodyType, setSelectedBodyType] = useState('All Body Types');
 
   // Dynamically compute dropdown options based on inventory data
-  const brands = ['All Brands', ...new Set(inventory.map((car) => car.brand))];
+  const brands = ['All Brands', ...new Set(inventory.map((car) => car.make).filter(Boolean))];
   
   // Dynamically filter models based on selected brand
   const models = [
     'All Models',
     ...new Set(
       inventory
-        .filter((car) => selectedBrand === 'All Brands' || car.brand === selectedBrand)
-        .map((car) => car.name)
+        .filter((car) => selectedBrand === 'All Brands' || car.make === selectedBrand)
+        .map((car) => car.model)
+        .filter(Boolean)
     )
   ];
 
   const years = [
     'All Years',
-    ...new Set(inventory.map((car) => car.year.toString()))
+    ...new Set(inventory.map((car) => car.year?.toString()).filter(Boolean))
   ].sort((a, b) => b - a);
 
   const bodyTypes = [
     'All Body Types',
-    ...new Set(inventory.map((car) => car.type))
+    ...new Set(inventory.map((car) => car.bodyType || car.body_type).filter(Boolean))
   ];
 
   const priceRanges = [
