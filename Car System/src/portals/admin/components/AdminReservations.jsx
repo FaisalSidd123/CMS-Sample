@@ -213,7 +213,7 @@ export default function AdminReservations() {
         body: JSON.stringify({
           file: cleanPdfDataUri,
           folder: 'vanguard_invoices',
-          resourceType: 'auto'
+          resourceType: 'image'
         })
       })
         .then(r => r.json())
