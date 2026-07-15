@@ -1,27 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { TableSkeleton } from '../../../components/Skeletons';
 import { 
-  FolderOpen, 
+  FileText, 
+  Truck, 
+  Shield, 
   Download, 
-  Send
+  Upload, 
+  CheckCircle,
+  FileCheck
 } from 'lucide-react';
 
 export default function AdminDocuments() {
   const [docs, setDocs] = useState([]);
-  const [leads, setLeads] = useState([]);
   const [vehicles, setVehicles] = useState([]);
+  const [leads, setLeads] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [toastMsg, setToastMsg] = useState('');
 
-  // Form states
-  const [selectedLead, setSelectedLead] = useState('');
-  const [selectedVehicle, setSelectedVehicle] = useState('');
-  const [docType, setDocType] = useState('invoice');
-  const [title, setTitle] = useState('');
-  
-  // File state
-  const [selectedFileBase64, setSelectedFileBase64] = useState('');
-  const [fileName, setFileName] = useState('');
+  // Selected vehicle context to show the checklist slots
+  const [selectedVehicleId, setSelectedVehicleId] = useState('');
+  // Target upload slot context
+  const [uploadingCategory, setUploadingCategory] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const triggerToast = (msg) => {
@@ -52,95 +51,118 @@ export default function AdminDocuments() {
     fetchDependencies();
   }, []);
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setFileName(file.name);
-    if (!title) {
-      setTitle(file.name.split('.')[0]);
+  // Defined checklist slots from user screenshot
+  const documentCategories = [
+    { 
+      id: 'invoice', 
+      name: 'Invoice', 
+      icon: FileCheck, 
+      color: 'text-amber-600 bg-amber-50 border-amber-100' 
+    },
+    { 
+      id: 'atj_inspection_report', 
+      name: 'ATJ Inspection Report', 
+      icon: FileText, 
+      color: 'text-blue-600 bg-blue-50 border-blue-100' 
+    },
+    { 
+      id: 'bill_of_lading', 
+      name: 'Bill of Lading (BL)', 
+      icon: Truck, 
+      color: 'text-orange-500 bg-orange-50 border-orange-100' 
+    },
+    { 
+      id: 'export_certificate_english', 
+      name: 'Export Certificate (English)', 
+      icon: Shield, 
+      color: 'text-emerald-600 bg-emerald-50 border-emerald-100' 
+    },
+    { 
+      id: 'export_certificate_japanese', 
+      name: 'Export Certificate (Japanese)', 
+      icon: Shield, 
+      color: 'text-red-500 bg-red-50 border-red-100' 
+    },
+    { 
+      id: 'surrendered_bil', 
+      name: 'Surrendered BIL', 
+      icon: Truck, 
+      color: 'text-blue-500 bg-blue-50 border-blue-100' 
     }
+  ];
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setSelectedFileBase64(reader.result);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleIssueDocument = async (e) => {
-    e.preventDefault();
-    if (!selectedLead || !selectedFileBase64 || !title) return;
+  const handleFileUpload = async (e, categoryId) => {
+    const file = e.target.files[0];
+    if (!file || !selectedVehicleId) return;
 
     setIsUploading(true);
-    let uploadedFileUrl = '';
+    setUploadingCategory(categoryId);
 
-    try {
-      const uploadRes = await fetch('http://localhost:5000/api/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          file: selectedFileBase64,
-          folder: 'vanguard_documents',
-          resourceType: 'auto'
-        })
-      }).then(r => r.json());
+    // Convert file to base64
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onloadend = async () => {
+      const base64Data = reader.result;
 
-      if (uploadRes.success) {
-        uploadedFileUrl = uploadRes.url;
-      } else {
-        triggerToast(`Cloudinary error: ${uploadRes.error}`);
+      try {
+        // 1. Upload to Cloudinary via backend upload API
+        const uploadRes = await fetch('http://localhost:5000/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            file: base64Data,
+            folder: 'vanguard_documents',
+            resourceType: 'auto'
+          })
+        }).then(r => r.json());
+
+        if (!uploadRes.success) {
+          triggerToast(`Upload failed: ${uploadRes.error}`);
+          setIsUploading(false);
+          setUploadingCategory(null);
+          return;
+        }
+
+        // 2. Save document link in our Supabase DB
+        const payload = {
+          title: file.name,
+          document_type: categoryId, // atj_inspection_report, bill_of_lading, etc.
+          file_url: uploadRes.url,
+          vehicle_id: parseInt(selectedVehicleId),
+          status: 'completed'
+        };
+
+        const dbRes = await fetch('http://localhost:5000/api/documents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).then(r => r.json());
+
         setIsUploading(false);
-        return;
-      }
-    } catch (err) {
-      console.error('Failed to upload file to Cloudinary:', err);
-      triggerToast('Network error uploading document.');
-      setIsUploading(false);
-      return;
-    }
+        setUploadingCategory(null);
 
-    const payload = {
-      title,
-      document_type: docType,
-      file_url: uploadedFileUrl,
-      lead_id: parseInt(selectedLead),
-      vehicle_id: selectedVehicle ? parseInt(selectedVehicle) : null,
-      status: 'completed'
-    };
-
-    fetch('http://localhost:5000/api/documents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-      .then(res => res.json())
-      .then(json => {
-        setIsUploading(false);
-        if (json.success) {
-          triggerToast('Document uploaded to Cloudinary & registered successfully.');
-          setTitle('');
-          setSelectedLead('');
-          setSelectedVehicle('');
-          setSelectedFileBase64('');
-          setFileName('');
+        if (dbRes.success) {
+          triggerToast(`Successfully uploaded ${file.name} to Cloudinary!`);
           fetchDependencies();
         } else {
-          triggerToast(`Database save error: ${json.error}`);
+          triggerToast(`DB save failed: ${dbRes.error}`);
         }
-      })
-      .catch(err => {
+
+      } catch (err) {
+        console.error('File stream error:', err);
+        triggerToast('Network error during file upload.');
         setIsUploading(false);
-        triggerToast('Failed to save document in registry database.');
-      });
+        setUploadingCategory(null);
+      }
+    };
   };
 
-  if (isLoading) {
-    return <TableSkeleton rows={4} cols={4} />;
-  }
+  if (isLoading) return <TableSkeleton rows={4} cols={4} />;
+
+  const activeVehicle = vehicles.find(v => v.id === parseInt(selectedVehicleId));
 
   return (
-    <div className="space-y-8 text-left relative">
+    <div className="space-y-6 text-left relative">
       {toastMsg && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 bg-charcoal text-white text-xs font-mono uppercase tracking-widest px-6 py-4 border border-brand-red/30 shadow-2xl">
           {toastMsg}
@@ -148,173 +170,141 @@ export default function AdminDocuments() {
       )}
 
       {/* Header */}
-      <div>
-        <span className="text-[9px] font-mono text-brand-red uppercase tracking-widest block mb-0.5">// Operations Files</span>
+      <div className="border-b border-border-hairline pb-4">
+        <span className="text-[9px] font-mono text-brand-red uppercase tracking-widest block mb-0.5">// Documents Hub</span>
         <h2 className="text-xl md:text-2xl font-display font-extrabold text-charcoal uppercase leading-none">
-          Document Issuance & Control
+          Registry Checklist & Clearance
         </h2>
-        <p className="text-[11px] text-neutral-400 font-sans mt-1">
-          Upload cleared invoices, buyer agreements, or bill of lading records directly to Cloudinary storage.
-        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         
-        {/* Left pane: File Repository */}
-        <div className="lg:col-span-2 bg-white border border-border-hairline p-5 shadow-xs min-h-[300px]">
-          <span className="font-display font-bold text-xs uppercase tracking-wider text-charcoal mb-4 block flex items-center gap-1.5">
-            <FolderOpen className="w-4.5 h-4.5 text-neutral-400" />
-            <span>Documents Repository Archive</span>
-          </span>
+        {/* Left Side - Selection and Category Checklist Grid */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white border border-border-hairline p-5 shadow-xs space-y-4">
+            <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold block">Select Vehicle Portfolio</label>
+            <select
+              value={selectedVehicleId}
+              onChange={e => setSelectedVehicleId(e.target.value)}
+              className="w-full bg-white border border-neutral-200 px-3 py-2.5 text-xs text-charcoal outline-hidden focus:border-brand-red cursor-pointer"
+            >
+              <option value="">-- Choose a Vehicle to view Checklist --</option>
+              {vehicles.map(v => (
+                <option key={v.id} value={v.id}>{v.make} {v.model} ({v.year}) - VIN-{v.id}</option>
+              ))}
+            </select>
+          </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-neutral-50 border-b border-border-hairline text-[8px] font-mono text-neutral-400 uppercase tracking-widest select-none">
-                  <th className="py-3 px-4 font-semibold">Client Folder</th>
-                  <th className="py-3 px-4 font-semibold">Linked Car</th>
-                  <th className="py-3 px-4 font-semibold">File Type</th>
-                  <th className="py-3 px-4 font-semibold">File Name</th>
-                  <th className="py-3 px-4 font-semibold text-right">Download</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-100">
-                {docs.map((doc) => (
-                  <tr key={doc.id} className="border-b border-neutral-50 last:border-0 hover:bg-neutral-50/50 transition-colors">
-                    <td className="py-3.5 px-4 font-display font-bold uppercase text-[11px] text-charcoal">
-                      {doc.leads?.name || 'Vanguard Escrow'}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      {doc.vehicles ? (
-                        <span className="font-display font-semibold uppercase text-[10px] text-neutral-600 block">
-                          {doc.vehicles.make} {doc.vehicles.model}
-                        </span>
-                      ) : (
-                        <span className="text-[9px] font-mono text-neutral-400 block uppercase">No Car Associated</span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4 text-neutral-400 font-mono uppercase text-[9px]">{doc.document_type}</td>
-                    <td className="py-3.5 px-4 text-neutral-600 font-mono break-all">{doc.title}</td>
-                    <td className="py-3.5 px-4 text-right">
-                      <a 
-                        href={doc.file_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="p-1.5 border border-neutral-200 text-neutral-400 hover:text-brand-red cursor-pointer flex items-center justify-center rounded-2xs inline-flex"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-                {docs.length === 0 && (
-                  <tr>
-                    <td colSpan="5" className="py-8 text-center text-neutral-400 font-sans">
-                      No documents currently archived in database registry.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          {activeVehicle ? (
+            <div className="bg-white border border-border-hairline p-6 shadow-xs space-y-6">
+              <div className="border-b border-neutral-100 pb-3 flex justify-between items-center">
+                <div>
+                  <span className="font-display font-extrabold uppercase text-xs text-charcoal block">
+                    {activeVehicle.make} {activeVehicle.model} ({activeVehicle.year})
+                  </span>
+                  <span className="text-[9px] font-mono text-neutral-400 block uppercase mt-0.5">Status: {activeVehicle.status} | Location: {activeVehicle.location}</span>
+                </div>
+                <span className="text-[8px] font-mono bg-neutral-100 text-neutral-600 px-2 py-1 uppercase tracking-wider font-semibold">Checks List</span>
+              </div>
+
+              {/* Dynamic checklist slots */}
+              <div className="space-y-4">
+                {documentCategories.map(cat => {
+                  // Check if this vehicle has an uploaded document matching this category ID
+                  const uploadedDoc = docs.find(d => d.vehicle_id === activeVehicle.id && d.document_type === cat.id);
+                  const IconComp = cat.icon;
+                  const isThisUploading = isUploading && uploadingCategory === cat.id;
+
+                  return (
+                    <div 
+                      key={cat.id} 
+                      className="flex items-center justify-between p-4 border border-neutral-100 rounded-md bg-neutral-50/30 hover:bg-neutral-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2.5 rounded-md border ${cat.color}`}>
+                          <IconComp className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <span className="font-display font-bold text-xs text-charcoal block">{cat.name}</span>
+                          {uploadedDoc ? (
+                            <span className="text-[9px] font-mono text-neutral-400 block truncate max-w-xs mt-0.5">
+                              File: {uploadedDoc.title}
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-mono text-neutral-400 block mt-0.5">Not Uploaded</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        {uploadedDoc ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[8px] font-mono bg-green-50 text-green-600 border border-green-100 px-2 py-1 uppercase tracking-wider font-bold inline-flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" /> Uploaded
+                            </span>
+                            <a 
+                              href={uploadedDoc.file_url} 
+                              target="_blank" 
+                              rel="noreferrer"
+                              className="p-1.5 border border-neutral-200 text-neutral-400 hover:text-brand-red hover:bg-white flex items-center justify-center rounded-2xs"
+                              title="Download Asset"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
+                        ) : (
+                          <label className="bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-600 text-[9px] font-bold uppercase tracking-wider px-3 py-2 cursor-pointer transition-colors inline-flex items-center gap-1.5 rounded-sm select-none">
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>{isThisUploading ? 'Uploading...' : 'Upload File'}</span>
+                            <input 
+                              type="file" 
+                              disabled={isUploading}
+                              accept="application/pdf,image/*" 
+                              onChange={(e) => handleFileUpload(e, cat.id)} 
+                              className="hidden" 
+                            />
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white border border-border-hairline border-dashed p-10 text-center text-neutral-400 select-none flex flex-col items-center justify-center min-h-60">
+              <FileCheck className="w-12 h-12 text-neutral-300 mb-2.5 animate-pulse" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-charcoal block">No Vehicle Portfolio Selected</span>
+              <span className="text-[9px] font-mono text-neutral-400 uppercase mt-1">Select a car portfolio above to review ATJ and Export certification check documents.</span>
+            </div>
+          )}
+        </div>
+
+        {/* Right Side - Archive Log list of all documents */}
+        <div className="bg-white border border-border-hairline p-5 shadow-xs space-y-4">
+          <span className="font-display font-bold text-xs uppercase tracking-wider text-charcoal block">Overall Clearance Ledger</span>
+          <div className="space-y-3.5 max-h-[460px] overflow-y-auto pr-1">
+            {docs.map(doc => (
+              <div key={doc.id} className="p-3 bg-neutral-50/50 border border-neutral-100 text-left leading-relaxed text-xs">
+                <span className="text-[9px] font-mono uppercase bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded-2xs inline-block mb-1">
+                  {doc.document_type.replace(/_/g, ' ')}
+                </span>
+                <span className="font-display font-bold text-charcoal block truncate">{doc.title}</span>
+                <div className="flex justify-between items-center mt-1.5 font-mono text-[8px] text-neutral-400 uppercase">
+                  <span>Linked Car: {doc.vehicles?.make} {doc.vehicles?.model}</span>
+                  <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-brand-red font-bold hover:underline">Download</a>
+                </div>
+              </div>
+            ))}
+            {docs.length === 0 && (
+              <div className="text-center py-8 text-neutral-400 text-[10px] uppercase font-mono">
+                No files registered.
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right pane: Issue Document form */}
-        <div className="bg-white border border-border-hairline p-5 shadow-xs">
-          <span className="font-display font-bold text-xs uppercase tracking-wider text-charcoal mb-4 block flex items-center gap-1.5">
-            <Send className="w-4 h-4 text-neutral-400" />
-            <span>Issue Official Document</span>
-          </span>
-
-          <form onSubmit={handleIssueDocument} className="space-y-4">
-            
-            {/* Select Client */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Select Buyer File</label>
-              <select
-                required
-                value={selectedLead}
-                onChange={(e) => setSelectedLead(e.target.value)}
-                className="bg-white border border-neutral-200 px-3 py-2.5 text-xs text-charcoal outline-hidden focus:border-brand-red cursor-pointer"
-              >
-                <option value="">-- Choose Lead --</option>
-                {leads.map(l => (
-                  <option key={l.id} value={l.id}>{l.name} ({l.email})</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Select Vehicle */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Associate Vehicle / Car</label>
-              <select
-                value={selectedVehicle}
-                onChange={(e) => setSelectedVehicle(e.target.value)}
-                className="bg-white border border-neutral-200 px-3 py-2.5 text-xs text-charcoal outline-hidden focus:border-brand-red cursor-pointer"
-              >
-                <option value="">-- Optional: Choose Car --</option>
-                {vehicles.map(v => (
-                  <option key={v.id} value={v.id}>{v.make} {v.model} ({v.year})</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Select Type */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Document Type</label>
-              <select
-                value={docType}
-                onChange={(e) => setDocType(e.target.value)}
-                className="bg-white border border-neutral-200 px-3 py-2.5 text-xs text-charcoal outline-hidden focus:border-brand-red cursor-pointer"
-              >
-                <option value="invoice">Escrow Invoice</option>
-                <option value="contract">Agreement Contract / Bill of Lading</option>
-              </select>
-            </div>
-
-            {/* Document Title */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Document Title</label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Cleared_Escrow_Receipt_Vanguard"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="bg-white border border-border-hairline px-3.5 py-2.5 text-xs text-charcoal outline-hidden focus:border-brand-red transition-all"
-              />
-            </div>
-
-            {/* File upload selector */}
-            <div className="flex flex-col gap-1">
-              <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Upload File (PDF/Image/etc)</label>
-              <input
-                type="file"
-                required
-                accept="application/pdf,image/*"
-                onChange={handleFileChange}
-                className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red w-full cursor-pointer"
-              />
-              {fileName && (
-                <div className="text-[8px] font-mono text-green-600 mt-1">
-                  ✓ File: {fileName} loaded. Ready to stream to Cloudinary.
-                </div>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={isUploading}
-              className="w-full bg-brand-red hover:bg-brand-red-hover disabled:bg-neutral-400 text-white text-xs font-bold uppercase tracking-widest py-3 flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
-            >
-              <span>{isUploading ? 'Streaming to Cloudinary...' : 'Issue Document'}</span>
-            </button>
-
-          </form>
-        </div>
-
       </div>
-
     </div>
   );
 }
