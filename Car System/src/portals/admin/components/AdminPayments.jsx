@@ -74,7 +74,8 @@ export default function AdminPayments() {
       payment_method: paymentMethod,
       payment_status: 'completed', // Direct allocation sets it paid
       due_date: new Date(dueDate).toISOString(),
-      paid_at: new Date().toISOString()
+      paid_at: new Date().toISOString(),
+      reservation_id: selectedRes.id
     };
 
     fetch('http://localhost:5000/api/payments', {
