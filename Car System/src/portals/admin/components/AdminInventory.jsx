@@ -587,17 +587,23 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
                         {v.mileage}
                       </td>
 
-                      {/* Editable Inline Status Dropdown */}
+                      {/* Read-Only Status Badge */}
                       <td className="py-4 px-6">
-                        <select
-                          value={v.status}
-                          onChange={(e) => handleStatusChange(v.id, e.target.value)}
-                          className="bg-white border border-neutral-200 px-2 py-1 text-[10px] font-mono uppercase tracking-wider cursor-pointer text-neutral-700 outline-hidden focus:border-brand-red"
-                        >
-                          <option value="available">Available</option>
-                          <option value="reserved">Reserved</option>
-                          <option value="sold">Sold</option>
-                        </select>
+                        {v.status === 'available' && (
+                          <span className="text-[9px] font-mono font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-sm">
+                            Available
+                          </span>
+                        )}
+                        {v.status === 'reserved' && (
+                          <span className="text-[9px] font-mono font-bold uppercase tracking-wider bg-amber-50 text-amber-600 border border-amber-100 px-2 py-0.5 rounded-sm">
+                            Reserved
+                          </span>
+                        )}
+                        {v.status === 'sold' && (
+                          <span className="text-[9px] font-mono font-bold uppercase tracking-wider bg-neutral-100 text-neutral-600 border border-neutral-200 px-2 py-0.5 rounded-sm">
+                            Sold
+                          </span>
+                        )}
                       </td>
 
                       {/* Actions */}
