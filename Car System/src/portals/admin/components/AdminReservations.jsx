@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TableSkeleton } from '../../../components/Skeletons';
-import { CalendarRange, Plus, X, Clock, Mail } from 'lucide-react';
+import { CalendarRange, Plus, X, Clock, AlertTriangle } from 'lucide-react';
 
 export default function AdminReservations() {
   const [reservations, setReservations] = useState([]);
@@ -17,6 +17,10 @@ export default function AdminReservations() {
   const [agentId, setAgentId] = useState('');
   const [deposit, setDeposit] = useState('');
   const [holdExpiresAt, setHoldExpiresAt] = useState('');
+
+  // Cancellation Modal/Prompt State
+  const [cancelResId, setCancelResId] = useState(null);
+  const [cancelReasonText, setCancelReasonText] = useState('');
 
   const triggerToast = (msg) => {
     setToastMsg(msg);
@@ -62,7 +66,8 @@ export default function AdminReservations() {
       agent_id: agentId ? parseInt(agentId) : null,
       deposit_amount: parseFloat(deposit),
       status: 'confirmed',
-      hold_expires_at: new Date(holdExpiresAt).toISOString()
+      hold_expires_at: new Date(holdExpiresAt).toISOString(),
+      cancellation_reason: null
     };
 
     fetch('http://localhost:5000/api/reservations', {
@@ -85,15 +90,42 @@ export default function AdminReservations() {
   };
 
   const handleUpdateStatus = (resId, nextStatus) => {
+    if (nextStatus === 'cancelled') {
+      // Trigger reason dialog
+      setCancelResId(resId);
+      setCancelReasonText('');
+      return;
+    }
+
+    // Direct update for other statuses
     fetch(`http://localhost:5000/api/reservations/${resId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: nextStatus })
+      body: JSON.stringify({ status: nextStatus, cancellation_reason: null })
     })
       .then(res => res.json())
       .then(json => {
         if (json.success) {
           triggerToast(`Hold status updated to: ${nextStatus.toUpperCase()}`);
+          fetchDependenciesAndReservations();
+        }
+      });
+  };
+
+  const submitCancellation = (e) => {
+    e.preventDefault();
+    if (!cancelResId || !cancelReasonText) return;
+
+    fetch(`http://localhost:5000/api/reservations/${cancelResId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'cancelled', cancellation_reason: cancelReasonText })
+    })
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) {
+          triggerToast('Hold cancelled with logged reason.');
+          setCancelResId(null);
           fetchDependenciesAndReservations();
         }
       });
@@ -170,6 +202,34 @@ export default function AdminReservations() {
         </form>
       )}
 
+      {/* Cancellation Prompt Modal Overlay */}
+      {cancelResId && (
+        <>
+          <div className="fixed inset-0 bg-black/60 z-40" onClick={() => setCancelResId(null)} />
+          <form onSubmit={submitCancellation} className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white border border-border-hairline p-6 shadow-2xl z-50 text-left space-y-4">
+            <div className="flex justify-between items-center border-b border-neutral-100 pb-2.5">
+              <span className="font-display font-bold text-xs uppercase tracking-wider text-charcoal">Log Cancellation Reason</span>
+              <button type="button" onClick={() => setCancelResId(null)} className="text-neutral-400 hover:text-brand-red cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Why is this hold being cancelled?</label>
+              <textarea 
+                required
+                value={cancelReasonText} 
+                onChange={e => setCancelReasonText(e.target.value)}
+                placeholder="e.g. Customer financing fell through, lead cancelled transaction..." 
+                className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal focus:border-brand-red outline-hidden h-24 resize-none"
+              />
+            </div>
+            <button type="submit" className="w-full bg-brand-red hover:bg-brand-red-hover text-white text-xs font-bold uppercase tracking-widest py-3 cursor-pointer">
+              Confirm Hold Cancellation
+            </button>
+          </form>
+        </>
+      )}
+
       {/* Table */}
       <div className="bg-white border border-border-hairline shadow-xs overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
@@ -186,55 +246,73 @@ export default function AdminReservations() {
             {reservations.map(res => {
               const hoursLeft = (new Date(res.hold_expires_at) - new Date()) / (1000 * 60 * 60);
               const isUrgent = hoursLeft > 0 && hoursLeft < 12 && res.status === 'confirmed';
+              const isCancelled = res.status === 'cancelled';
 
               return (
-                <tr key={res.id} className="hover:bg-neutral-50/50">
-                  <td className="py-3.5 px-4 text-left">
-                    <span className="font-display font-bold uppercase text-[11px] block text-charcoal">
-                      {res.vehicles?.make} {res.vehicles?.model}
-                    </span>
-                    <span className="text-[9px] font-mono text-neutral-400 block uppercase mt-0.5">
-                      Year: {res.vehicles?.year} | Location: {res.vehicles?.location}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-left">
-                    <span className="font-display font-bold uppercase text-[11px] block text-charcoal">
-                      {res.leads?.name}
-                    </span>
-                    <span className="text-[9px] font-mono text-neutral-400 block mt-0.5">
-                      {res.leads?.email}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 font-mono font-bold text-neutral-500">
-                    ${Number(res.deposit_amount).toLocaleString()}
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <div className="flex flex-col">
-                      <span className="font-mono text-neutral-600">
-                        {new Date(res.hold_expires_at).toLocaleDateString()}
+                <React.Fragment key={res.id}>
+                  <tr className="hover:bg-neutral-50/50">
+                    <td className="py-3.5 px-4 text-left">
+                      <span className="font-display font-bold uppercase text-[11px] block text-charcoal">
+                        {res.vehicles?.make} {res.vehicles?.model}
                       </span>
-                      {isUrgent && (
-                        <span className="text-[8px] font-mono uppercase bg-amber-500/10 text-amber-600 border border-amber-500/20 px-1 py-0.5 rounded-xs mt-1 self-start inline-flex items-center gap-1">
-                          <Clock className="w-3 h-3" /> Expiring soon
+                      <span className="text-[9px] font-mono text-neutral-400 block uppercase mt-0.5">
+                        Year: {res.vehicles?.year} | Location: {res.vehicles?.location}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-left">
+                      <span className="font-display font-bold uppercase text-[11px] block text-charcoal">
+                        {res.leads?.name}
+                      </span>
+                      <span className="text-[9px] font-mono text-neutral-400 block mt-0.5">
+                        {res.leads?.email}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 font-mono font-bold text-neutral-500">
+                      ${Number(res.deposit_amount).toLocaleString()}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="flex flex-col">
+                        <span className="font-mono text-neutral-600">
+                          {new Date(res.hold_expires_at).toLocaleDateString()}
                         </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <select
-                        value={res.status}
-                        onChange={e => handleUpdateStatus(res.id, e.target.value)}
-                        className="bg-transparent border border-neutral-200 text-xs py-1 px-2 outline-hidden cursor-pointer font-mono font-bold uppercase text-[9px]"
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="expired">Expired</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
-                    </div>
-                  </td>
-                </tr>
+                        {isUrgent && (
+                          <span className="text-[8px] font-mono uppercase bg-amber-500/10 text-amber-600 border border-amber-500/20 px-1 py-0.5 rounded-xs mt-1 self-start inline-flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> Expiring soon
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <select
+                          value={res.status}
+                          onChange={e => handleUpdateStatus(res.id, e.target.value)}
+                          className="bg-transparent border border-neutral-200 text-xs py-1 px-2 outline-hidden cursor-pointer font-mono font-bold uppercase text-[9px]"
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="expired">Expired</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* Render Cancellation Reason Row if it is cancelled */}
+                  {isCancelled && res.cancellation_reason && (
+                    <tr className="bg-red-50/20">
+                      <td colSpan="5" className="py-2.5 px-6 border-l-4 border-l-brand-red text-left">
+                        <div className="flex items-center gap-2 text-red-600 text-[10px] font-mono uppercase tracking-wider font-semibold">
+                          <AlertTriangle className="w-3.5 h-3.5 text-brand-red" />
+                          <span>Cancellation Reason Logged:</span>
+                        </div>
+                        <p className="text-xs text-neutral-500 italic mt-0.5 pl-5">
+                          "{res.cancellation_reason}"
+                        </p>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               );
             })}
             {reservations.length === 0 && (
