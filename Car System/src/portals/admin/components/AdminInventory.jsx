@@ -95,9 +95,52 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
   };
 
   // Submit Add form
-  const handleAddVehicle = (e) => {
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    setSelectedImages([]);
+
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImages(prev => [...prev, reader.result]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleAddVehicle = async (e) => {
     e.preventDefault();
     if (!make || !model || !price || !mileage) return;
+
+    setIsUploading(true);
+    let uploadedUrls = [];
+
+    try {
+      // 1. Upload all selected images to Cloudinary via backend API
+      const uploadPromises = selectedImages.map(imgBase64 => {
+        return fetch('http://localhost:5000/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            file: imgBase64,
+            folder: 'vanguard_vehicles',
+            resourceType: 'image'
+          })
+        }).then(r => r.json());
+      });
+
+      const uploadResults = await Promise.all(uploadPromises);
+      uploadedUrls = uploadResults.filter(res => res.success).map(res => res.url);
+    } catch (err) {
+      console.error('Cloudinary upload failure:', err);
+    }
+
+    const thumbnail = uploadedUrls.length > 0 
+      ? uploadedUrls[0] 
+      : 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=80';
 
     const newVehicleData = {
       make,
@@ -111,10 +154,8 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
       status: 'available',
       specs: specs ? specs.split(',').map(s => s.trim()) : ['Premium Package', 'Verified History'],
       conditionNotes: conditionNotes || 'No major issues, verified mechanical condition.',
-      thumbnailImage: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=80',
-      images: [
-        'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&q=80'
-      ]
+      thumbnailImage: thumbnail,
+      images: uploadedUrls.length > 0 ? uploadedUrls : [thumbnail]
     };
 
     fetch('http://localhost:5000/api/vehicles', {
@@ -126,17 +167,20 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
     })
       .then(res => res.json())
       .then(json => {
+        setIsUploading(false);
         if (json.success && json.data) {
           onUpdateVehicles([json.data, ...vehicles]);
           setShowAddForm(false);
           // Clear inputs
           setMake(''); setModel(''); setPrice(''); setMileage(''); setColor(''); setLocation(''); setSpecs(''); setConditionNotes('');
+          setSelectedImages([]);
           triggerToast(`Added vehicle: ${make} ${model} to database.`);
         } else {
           triggerToast(`Failed to add vehicle: ${json.error || 'Server error'}`);
         }
       })
       .catch(err => {
+        setIsUploading(false);
         console.error('Error creating vehicle:', err);
         triggerToast('Failed to add vehicle: Server connection error');
       });
@@ -274,12 +318,27 @@ export default function AdminInventory({ sharedVehicles = [], onUpdateVehicles }
             </div>
 
             <div className="flex flex-col gap-1 md:col-span-3">
-              <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Condition Remarks</label>
-              <textarea rows={2} placeholder="Inspect notes..." value={conditionNotes} onChange={(e) => setConditionNotes(e.target.value)} className="bg-light-bg border border-border-hairline p-3 text-xs text-charcoal outline-hidden focus:border-brand-red resize-none" />
+              <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Upload Vehicle Photos (Multiple)</label>
+              <input 
+                type="file" 
+                multiple 
+                accept="image/*" 
+                onChange={handleImageChange} 
+                className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red w-full" 
+              />
+              {selectedImages.length > 0 && (
+                <div className="text-[8px] font-mono text-green-600 mt-1">
+                  ✓ {selectedImages.length} images queued for Cloudinary upload.
+                </div>
+              )}
             </div>
 
-            <button type="submit" className="md:col-span-3 bg-charcoal hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-widest py-3 cursor-pointer transition-colors text-center shadow-xs">
-              Confirm registration
+            <button 
+              type="submit" 
+              disabled={isUploading}
+              className="md:col-span-3 bg-charcoal hover:bg-neutral-800 disabled:bg-neutral-400 text-white text-xs font-bold uppercase tracking-widest py-3 cursor-pointer transition-colors text-center shadow-xs"
+            >
+              {isUploading ? 'Uploading to Cloudinary...' : 'Confirm registration'}
             </button>
           </form>
         </div>

@@ -1,152 +1,146 @@
 import React, { useState, useEffect } from 'react';
-import { useMockData } from '../../../hooks/useMockData';
 import { TableSkeleton } from '../../../components/Skeletons';
 import { 
   FolderOpen, 
-  Plus, 
   Check, 
   X, 
   FileText, 
   Download, 
   Clock, 
-  AlertTriangle,
-  Send,
-  User,
-  Layers,
-  FileSpreadsheet
+  Send
 } from 'lucide-react';
 
-export default function AdminDocuments({ 
-  sharedInvoices = [], 
-  onUpdateInvoices,
-  sharedDocs = [],
-  onUpdateDocs,
-  sharedAudit = [],
-  onUpdateAudit
-}) {
-  const { data: initialInvoices, isLoading: invoicesLoading } = useMockData('invoiceRequests');
-  const { data: initialDocs, isLoading: docsLoading } = useMockData('agentDocuments');
-  const { data: clientsList, isLoading: clientsLoading } = useMockData('clients');
-
-  const isLoading = invoicesLoading || docsLoading || clientsLoading;
-
-  // Local synced states
-  const [invoices, setInvoices] = useState([]);
+export default function AdminDocuments() {
   const [docs, setDocs] = useState([]);
+  const [leads, setLeads] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [toastMsg, setToastMsg] = useState('');
 
   // Form states
-  const [selectedClient, setSelectedClient] = useState('');
+  const [selectedLead, setSelectedLead] = useState('');
   const [docType, setDocType] = useState('Invoice');
+  const [title, setTitle] = useState('');
+  
+  // File state
+  const [selectedFileBase64, setSelectedFileBase64] = useState('');
   const [fileName, setFileName] = useState('');
-  const [docNotes, setDocNotes] = useState('');
-
-  // Sync initial mock sets
-  useEffect(() => {
-    if (sharedInvoices.length > 0) {
-      setInvoices(sharedInvoices);
-    } else if (initialInvoices) {
-      setInvoices(initialInvoices);
-    }
-
-    if (sharedDocs.length > 0) {
-      setDocs(sharedDocs);
-    } else if (initialDocs) {
-      setDocs(initialDocs);
-    }
-  }, [sharedInvoices, initialInvoices, sharedDocs, initialDocs]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const triggerToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 3000);
   };
 
-  // Invoice Approve / Reject
-  const handleActionInvoice = (invoiceId, action) => {
-    const updatedStatus = action === 'approve' ? 'Approved' : 'Rejected';
-    const updated = invoices.map(inv => inv.id === invoiceId ? { ...inv, status: updatedStatus } : inv);
-    
-    setInvoices(updated);
-    onUpdateInvoices(updated);
+  const fetchDocsAndLeads = () => {
+    setIsLoading(true);
+    const fetchDocs = fetch('http://localhost:5000/api/documents').then(r => r.json());
+    const fetchLeads = fetch('http://localhost:5000/api/leads').then(r => r.json());
 
-    // If approved, create a corresponding file scan in the documents archive automatically!
-    if (action === 'approve') {
-      const targetInvoice = invoices.find(i => i.id === invoiceId);
-      if (targetInvoice) {
-        const client = clientsList?.find(c => c.id === targetInvoice.clientId);
-        const newDoc = {
-          id: `adoc-${Math.floor(80 + Math.random() * 20)}`,
-          clientId: targetInvoice.clientId,
-          type: 'Invoice',
-          fileName: `Vanguard_Escrow_Invoice_${targetInvoice.reservationId}.pdf`,
-          uploadDate: new Date().toISOString(),
-          status: 'Approved'
-        };
-        const updatedDocs = [newDoc, ...docs];
-        setDocs(updatedDocs);
-        onUpdateDocs(updatedDocs);
-      }
-    }
-
-    // Add administrative audit entry
-    const newAudit = {
-      id: `aud-${Math.floor(900 + Math.random() * 99)}`,
-      adminId: 'adm-01',
-      adminName: 'Chief Executive Operator',
-      actionTaken: action === 'approve' ? 'Approved Invoice Request' : 'Rejected Invoice Request',
-      target: `${action === 'approve' ? 'Approved' : 'Rejected'} invoice request ${invoiceId}.`,
-      timestamp: new Date().toISOString()
-    };
-    onUpdateAudit([newAudit, ...sharedAudit]);
-
-    triggerToast(`Invoice request ${invoiceId} ${updatedStatus.toLowerCase()} successfully.`);
+    Promise.all([fetchDocs, fetchLeads])
+      .then(([docJson, leadJson]) => {
+        if (docJson.success) setDocs(docJson.data);
+        if (leadJson.success) setLeads(leadJson.data);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to load documents registry:', err);
+        setIsLoading(false);
+      });
   };
 
-  // Issue new document
-  const handleIssueDocument = (e) => {
+  useEffect(() => {
+    fetchDocsAndLeads();
+  }, []);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setFileName(file.name);
+    if (!title) {
+      setTitle(file.name.split('.')[0]);
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedFileBase64(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleIssueDocument = async (e) => {
     e.preventDefault();
-    if (!selectedClient || !fileName) return;
+    if (!selectedLead || !selectedFileBase64 || !title) return;
 
-    const newDoc = {
-      id: `adoc-${Math.floor(100 + Math.random() * 900)}`,
-      clientId: selectedClient,
-      type: docType,
-      fileName: fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`,
-      uploadDate: new Date().toISOString(),
-      status: 'Approved'
+    setIsUploading(true);
+    let uploadedFileUrl = '';
+
+    try {
+      // 1. Upload to Cloudinary via backend
+      const uploadRes = await fetch('http://localhost:5000/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file: selectedFileBase64,
+          folder: 'vanguard_documents',
+          resourceType: 'auto' // handles PDFs, images, raw files
+        })
+      }).then(r => r.json());
+
+      if (uploadRes.success) {
+        uploadedFileUrl = uploadRes.url;
+      } else {
+        triggerToast(`Cloudinary error: ${uploadRes.error}`);
+        setIsUploading(false);
+        return;
+      }
+    } catch (err) {
+      console.error('Failed to upload file to Cloudinary:', err);
+      triggerToast('Network error uploading document.');
+      setIsUploading(false);
+      return;
+    }
+
+    // 2. Save document record to DB
+    const payload = {
+      title,
+      document_type: docType,
+      file_url: uploadedFileUrl,
+      lead_id: parseInt(selectedLead),
+      status: 'active'
     };
 
-    const updatedDocs = [newDoc, ...docs];
-    setDocs(updatedDocs);
-    onUpdateDocs(updatedDocs);
-
-    // Add audit entry
-    const newAudit = {
-      id: `aud-${Math.floor(900 + Math.random() * 99)}`,
-      adminId: 'adm-01',
-      adminName: 'Chief Executive Operator',
-      actionTaken: 'Issued Document',
-      target: `Issued ${docType} to client ${selectedClient}: ${fileName}.`,
-      timestamp: new Date().toISOString()
-    };
-    onUpdateAudit([newAudit, ...sharedAudit]);
-
-    setSelectedClient('');
-    setFileName('');
-    setDocNotes('');
-    triggerToast("Document issued. Client files updated.");
+    fetch('http://localhost:5000/api/documents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(res => res.json())
+      .then(json => {
+        setIsUploading(false);
+        if (json.success) {
+          triggerToast('Document uploaded to Cloudinary & registered successfully.');
+          setTitle('');
+          setSelectedLead('');
+          setSelectedFileBase64('');
+          setFileName('');
+          fetchDocsAndLeads();
+        } else {
+          triggerToast(`Database save error: ${json.error}`);
+        }
+      })
+      .catch(err => {
+        setIsUploading(false);
+        triggerToast('Failed to save document in registry database.');
+      });
   };
 
   if (isLoading) {
     return <TableSkeleton rows={4} cols={4} />;
   }
 
-  const pendingInvoices = invoices.filter(inv => inv.status === 'Pending Admin Approval');
-
   return (
     <div className="space-y-8 text-left relative">
-      
-      {/* Toast Notification */}
       {toastMsg && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 bg-charcoal text-white text-xs font-mono uppercase tracking-widest px-6 py-4 border border-brand-red/30 shadow-2xl">
           {toastMsg}
@@ -160,70 +154,10 @@ export default function AdminDocuments({
           Document Issuance & Control
         </h2>
         <p className="text-[11px] text-neutral-400 font-sans mt-1">
-          Approve agent invoice requests, issue invoices and bills of lading, and audit buyers documentation logs.
+          Upload cleared invoices, buyer agreements, or bill of lading records directly to Cloudinary storage.
         </p>
       </div>
 
-      {/* Top section: Pending Requests */}
-      <div className="bg-white border border-border-hairline p-5 shadow-xs">
-        <span className="font-display font-bold text-xs uppercase tracking-wider text-charcoal mb-4 block flex items-center gap-1.5">
-          <Clock className="w-4.5 h-4.5 text-amber-500 animate-pulse" />
-          <span>Pending Invoice Requests ({pendingInvoices.length})</span>
-        </span>
-
-        {pendingInvoices.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-neutral-100 text-[8px] font-mono text-neutral-400 uppercase tracking-widest select-none">
-                  <th className="pb-3 font-semibold">Req ID</th>
-                  <th className="pb-3 font-semibold">Client Folder</th>
-                  <th className="pb-3 font-semibold">Hold ID</th>
-                  <th className="pb-3 font-semibold">Invoice Value</th>
-                  <th className="pb-3 font-semibold">Request Notes</th>
-                  <th className="pb-3 font-semibold text-right">Oversight</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendingInvoices.map((inv) => {
-                  const client = clientsList?.find(c => c.id === inv.clientId);
-                  return (
-                    <tr key={inv.id} className="border-b border-neutral-50 last:border-0 hover:bg-neutral-50/50 transition-colors">
-                      <td className="py-3 font-mono font-bold text-neutral-400">{inv.id}</td>
-                      <td className="py-3 font-display font-bold uppercase text-[11px] text-charcoal">{client?.name}</td>
-                      <td className="py-3 text-neutral-400 font-mono uppercase text-[9px]">{inv.reservationId}</td>
-                      <td className="py-3 text-brand-red font-display font-bold">{inv.amount}</td>
-                      <td className="py-3 text-neutral-500 font-sans max-w-xs truncate">{inv.notes}</td>
-                      <td className="py-3 text-right flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleActionInvoice(inv.id, 'approve')}
-                          className="p-1 border border-neutral-200 text-green-600 hover:border-green-500 hover:bg-green-50 cursor-pointer flex items-center justify-center rounded-2xs"
-                          title="Approve Invoicing"
-                        >
-                          <Check className="w-3.5 h-3.5 stroke-[3]" />
-                        </button>
-                        <button
-                          onClick={() => handleActionInvoice(inv.id, 'reject')}
-                          className="p-1 border border-neutral-200 text-red-600 hover:border-red-500 hover:bg-red-50 cursor-pointer flex items-center justify-center rounded-2xs"
-                          title="Reject Invoicing"
-                        >
-                          <X className="w-3.5 h-3.5 stroke-[3]" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-6 text-neutral-400 text-xs font-sans">
-            No pending invoice requests in queue.
-          </div>
-        )}
-      </div>
-
-      {/* Main split grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         
         {/* Left pane: File Repository */}
@@ -244,26 +178,34 @@ export default function AdminDocuments({
                   <th className="pb-3 font-semibold text-right">Download</th>
                 </tr>
               </thead>
-              <tbody>
-                {docs.map((doc) => {
-                  const client = clientsList?.find(c => c.id === doc.clientId);
-                  return (
-                    <tr key={doc.id} className="border-b border-neutral-50 last:border-0 hover:bg-neutral-50/50 transition-colors">
-                      <td className="py-3 font-display font-bold uppercase text-[11px] text-charcoal">{client?.name}</td>
-                      <td className="py-3 text-neutral-400 font-mono uppercase text-[9px]">{doc.type}</td>
-                      <td className="py-3 text-neutral-600 font-mono break-all">{doc.fileName}</td>
-                      <td className="py-3 text-neutral-400 font-mono">{new Date(doc.uploadDate).toLocaleDateString()}</td>
-                      <td className="py-3 text-right">
-                        <button 
-                          onClick={() => triggerToast(`Simulating download: ${doc.fileName}`)}
-                          className="p-1 border border-neutral-200 text-neutral-400 hover:text-brand-red cursor-pointer flex items-center justify-center rounded-2xs inline-block"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+              <tbody className="divide-y divide-neutral-100">
+                {docs.map((doc) => (
+                  <tr key={doc.id} className="border-b border-neutral-50 last:border-0 hover:bg-neutral-50/50 transition-colors">
+                    <td className="py-3 font-display font-bold uppercase text-[11px] text-charcoal">
+                      {doc.leads?.name || 'Vanguard Escrow'}
+                    </td>
+                    <td className="py-3 text-neutral-400 font-mono uppercase text-[9px]">{doc.document_type}</td>
+                    <td className="py-3 text-neutral-600 font-mono break-all">{doc.title}</td>
+                    <td className="py-3 text-neutral-400 font-mono">{new Date(doc.created_at).toLocaleDateString()}</td>
+                    <td className="py-3 text-right">
+                      <a 
+                        href={doc.file_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="p-1 border border-neutral-200 text-neutral-400 hover:text-brand-red cursor-pointer flex items-center justify-center rounded-2xs inline-flex"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+                {docs.length === 0 && (
+                  <tr>
+                    <td colSpan="5" className="py-8 text-center text-neutral-400 font-sans">
+                      No documents currently archived in database registry.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -283,13 +225,13 @@ export default function AdminDocuments({
               <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Select Buyer File</label>
               <select
                 required
-                value={selectedClient}
-                onChange={(e) => setSelectedClient(e.target.value)}
+                value={selectedLead}
+                onChange={(e) => setSelectedLead(e.target.value)}
                 className="bg-white border border-neutral-200 px-3 py-2.5 text-xs text-charcoal outline-hidden focus:border-brand-red cursor-pointer"
               >
-                <option value="">-- Choose Client --</option>
-                {clientsList?.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                <option value="">-- Choose Lead --</option>
+                {leads.map(l => (
+                  <option key={l.id} value={l.id}>{l.name} ({l.email})</option>
                 ))}
               </select>
             </div>
@@ -305,39 +247,46 @@ export default function AdminDocuments({
                 <option value="Invoice">Escrow Invoice</option>
                 <option value="Receipt">Cleared Receipt</option>
                 <option value="Bill of Lading">Bill of Lading</option>
+                <option value="Contract">Agreement Contract</option>
               </select>
             </div>
 
-            {/* File Name */}
+            {/* Document Title */}
             <div className="flex flex-col gap-1">
-              <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Document Filename</label>
+              <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Document Title</label>
               <input
                 type="text"
                 required
-                placeholder="e.g. Bill_Of_Lading_Miami_Depot"
-                value={fileName}
-                onChange={(e) => setFileName(e.target.value)}
+                placeholder="e.g. Cleared_Escrow_Receipt_Vanguard"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 className="bg-white border border-border-hairline px-3.5 py-2.5 text-xs text-charcoal outline-hidden focus:border-brand-red transition-all"
               />
             </div>
 
-            {/* Note details */}
+            {/* File upload selector */}
             <div className="flex flex-col gap-1">
-              <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Issuing notes</label>
-              <textarea
-                rows={2}
-                value={docNotes}
-                onChange={(e) => setDocNotes(e.target.value)}
-                placeholder="Log internal details..."
-                className="bg-white border border-border-hairline p-3 text-xs text-charcoal outline-hidden focus:border-brand-red transition-all resize-none placeholder:text-neutral-400"
+              <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Upload File (PDF/Image/etc)</label>
+              <input
+                type="file"
+                required
+                accept="application/pdf,image/*"
+                onChange={handleFileChange}
+                className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red w-full cursor-pointer"
               />
+              {fileName && (
+                <div className="text-[8px] font-mono text-green-600 mt-1">
+                  ✓ File: {fileName} loaded. Ready to stream to Cloudinary.
+                </div>
+              )}
             </div>
 
             <button
               type="submit"
-              className="w-full bg-brand-red hover:bg-brand-red-hover text-white text-xs font-bold uppercase tracking-widest py-3 flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+              disabled={isUploading}
+              className="w-full bg-brand-red hover:bg-brand-red-hover disabled:bg-neutral-400 text-white text-xs font-bold uppercase tracking-widest py-3 flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
             >
-              <span>Issue Document</span>
+              <span>{isUploading ? 'Streaming to Cloudinary...' : 'Issue Document'}</span>
             </button>
 
           </form>
