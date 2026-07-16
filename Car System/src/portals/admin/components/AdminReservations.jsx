@@ -156,11 +156,6 @@ export default function AdminReservations() {
 
     setIsGenerating(true);
     const invoiceId = `INV-${res.id}-${Math.floor(100 + Math.random() * 900)}`;
-    const rawPrice = res.vehicles?.price !== undefined && res.vehicles?.price !== null ? res.vehicles.price : 50000;
-    const numericPrice = typeof rawPrice === 'number' 
-      ? rawPrice 
-      : parseInt(rawPrice.toString().replace(/[^0-9]/g, '')) || 50000;
-    const balance = numericPrice - parseFloat(res.deposit_amount);
 
     // Initialize jsPDF document
     const doc = new jsPDF({
@@ -201,13 +196,12 @@ export default function AdminReservations() {
     doc.setFontSize(9);
     doc.text(`Asset Description:       ${res.vehicles?.year} ${res.vehicles?.make} ${res.vehicles?.model}`, 20, 72);
     doc.text(`Reference VIN:           VIN-${res.vehicles?.id}`, 20, 78);
-    doc.text(`Retail Cost:             ${typeof rawPrice === 'number' ? `$${rawPrice.toLocaleString()}` : rawPrice}`, 20, 84);
-    doc.text(`Hold Deposit Credited:   $${Number(res.deposit_amount).toLocaleString()}`, 20, 90);
+    doc.text(`Final Decided Price:     $${Number(res.deposit_amount).toLocaleString()}`, 20, 84);
 
     doc.setFont('courier', 'bold');
-    doc.text(`OUTSTANDING BALANCE DUE: $${balance.toLocaleString()}`, 20, 99);
+    doc.text(`TOTAL OUTSTANDING COST:  $${Number(res.deposit_amount).toLocaleString()}`, 20, 94);
 
-    doc.line(20, 106, 190, 106);
+    doc.line(20, 102, 190, 102);
     
     doc.setFont('courier', 'normal');
     doc.setFontSize(8);
@@ -347,8 +341,8 @@ export default function AdminReservations() {
             </select>
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Hold Deposit ($ USD)</label>
-            <input required type="number" placeholder="e.g. 2000" value={deposit} onChange={e => setDeposit(e.target.value)} className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal focus:border-brand-red outline-hidden" />
+            <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Final Decided Price ($ USD)</label>
+            <input required type="number" placeholder="e.g. 85000" value={deposit} onChange={e => setDeposit(e.target.value)} className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal focus:border-brand-red outline-hidden" />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Expiry Date</label>
@@ -395,7 +389,7 @@ export default function AdminReservations() {
             <tr className="bg-neutral-50 border-b border-border-hairline text-[8px] font-mono text-neutral-400 uppercase tracking-widest">
               <th className="py-3 px-4 font-semibold">Vehicle</th>
               <th className="py-3 px-4 font-semibold">Customer / Lead</th>
-              <th className="py-3 px-4 font-semibold">Deposit Amount</th>
+              <th className="py-3 px-4 font-semibold">Final Agreed Price</th>
               <th className="py-3 px-4 font-semibold">Hold Expires At</th>
               <th className="py-3 px-4 text-right font-semibold">Status / Actions</th>
             </tr>

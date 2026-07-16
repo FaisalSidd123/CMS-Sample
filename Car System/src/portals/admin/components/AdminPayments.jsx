@@ -51,10 +51,8 @@ export default function AdminPayments() {
 
   const handleSelectReservation = (res) => {
     setSelectedRes(res);
-    // Autofill values based on selected vehicle/reservation
-    // Default amount: extract number from price (e.g. "$112,000" -> 112000)
-    const rawPrice = res.vehicles?.price;
-    const cleanPrice = rawPrice ? parseInt(rawPrice.replace(/[^0-9]/g, '')) : 50000;
+    // Default amount: load the final decided cost of car from the reservation
+    const cleanPrice = res.deposit_amount ? parseInt(res.deposit_amount) : 50000;
     setAmount(cleanPrice);
     
     // Set default due date to 7 days from now
