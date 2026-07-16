@@ -37,7 +37,7 @@ export default function AdminLeads() {
 
   const fetchLeads = () => {
     setIsLoading(true);
-    fetch('http://localhost:5000/api/leads')
+    fetch(window.API_BASE_URL + '/leads')
       .then(res => res.json())
       .then(json => {
         if (json.success) {
@@ -52,7 +52,7 @@ export default function AdminLeads() {
   };
 
   const fetchAgents = () => {
-    fetch('http://localhost:5000/api/agents')
+    fetch(window.API_BASE_URL + '/agents')
       .then(res => res.json())
       .then(json => {
         if (json.success) setAgents(json.data);
@@ -69,7 +69,7 @@ export default function AdminLeads() {
     e.preventDefault();
     const token = sessionStorage.getItem('vanguard_admin_token') || sessionStorage.getItem('vanguard_agent_token');
 
-    fetch('http://localhost:5000/api/leads', {
+    fetch(window.API_BASE_URL + '/leads', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -102,7 +102,7 @@ export default function AdminLeads() {
   const handleUpdateStatus = (leadId, nextStatus) => {
     const token = sessionStorage.getItem('vanguard_admin_token') || sessionStorage.getItem('vanguard_agent_token');
 
-    fetch(`http://localhost:5000/api/leads/${leadId}`, {
+    fetch(`${window.API_BASE_URL}/leads/${leadId}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',
@@ -122,7 +122,7 @@ export default function AdminLeads() {
   const handleReassignAgent = (leadId, newAgentId) => {
     const token = sessionStorage.getItem('vanguard_admin_token') || sessionStorage.getItem('vanguard_agent_token');
 
-    fetch(`http://localhost:5000/api/leads/${leadId}`, {
+    fetch(`${window.API_BASE_URL}/leads/${leadId}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',

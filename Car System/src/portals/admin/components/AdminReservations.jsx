@@ -33,10 +33,10 @@ export default function AdminReservations() {
 
   const fetchDependenciesAndReservations = () => {
     setIsLoading(true);
-    const fetchRes = fetch('http://localhost:5000/api/reservations').then(r => r.json());
-    const fetchVehicles = fetch('http://localhost:5000/api/vehicles').then(r => r.json());
-    const fetchLeads = fetch('http://localhost:5000/api/leads').then(r => r.json());
-    const fetchAgents = fetch('http://localhost:5000/api/agents').then(r => r.json());
+    const fetchRes = fetch(window.API_BASE_URL + '/reservations').then(r => r.json());
+    const fetchVehicles = fetch(window.API_BASE_URL + '/vehicles').then(r => r.json());
+    const fetchLeads = fetch(window.API_BASE_URL + '/leads').then(r => r.json());
+    const fetchAgents = fetch(window.API_BASE_URL + '/agents').then(r => r.json());
 
     Promise.all([fetchRes, fetchVehicles, fetchLeads, fetchAgents])
       .then(([resJson, vJson, lJson, aJson]) => {
@@ -76,7 +76,7 @@ export default function AdminReservations() {
 
     const token = sessionStorage.getItem('vanguard_admin_token');
 
-    fetch('http://localhost:5000/api/reservations', {
+    fetch(window.API_BASE_URL + '/reservations', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -107,7 +107,7 @@ export default function AdminReservations() {
 
     const token = sessionStorage.getItem('vanguard_admin_token');
 
-    fetch(`http://localhost:5000/api/reservations/${resId}`, {
+    fetch(`${window.API_BASE_URL}/reservations/${resId}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',
@@ -130,7 +130,7 @@ export default function AdminReservations() {
 
     const token = sessionStorage.getItem('vanguard_admin_token');
 
-    fetch(`http://localhost:5000/api/reservations/${cancelResId}`, {
+    fetch(`${window.API_BASE_URL}/reservations/${cancelResId}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',
@@ -216,7 +216,7 @@ export default function AdminReservations() {
       const cleanPdfDataUri = reader.result;
 
       // 1. Upload generated PDF to Cloudinary
-      fetch('http://localhost:5000/api/upload', {
+      fetch(window.API_BASE_URL + '/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -238,7 +238,7 @@ export default function AdminReservations() {
         const token = sessionStorage.getItem('vanguard_admin_token');
 
         // 2. Save this URL to the reservations table invoice column
-        const updateRes = fetch(`http://localhost:5000/api/reservations/${res.id}`, {
+        const updateRes = fetch(`${window.API_BASE_URL}/reservations/${res.id}`, {
           method: 'PUT',
           headers: { 
             'Content-Type': 'application/json',
@@ -248,7 +248,7 @@ export default function AdminReservations() {
         }).then(r => r.json());
 
         // 3. Also log it inside the documents table under 'invoice' type
-        const createDoc = fetch('http://localhost:5000/api/documents', {
+        const createDoc = fetch(window.API_BASE_URL + '/documents', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',

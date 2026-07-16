@@ -61,7 +61,7 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
 
   const fetchVehicles = () => {
     setIsLoading(true);
-    fetch('http://localhost:5000/api/vehicles')
+    fetch(window.API_BASE_URL + '/vehicles')
       .then(res => res.json())
       .then(json => {
         if (json.success) {
@@ -114,7 +114,7 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
 
     try {
       const uploadPromises = selectedImages.map(imgBase64 => {
-        return fetch('http://localhost:5000/api/upload', {
+        return fetch(window.API_BASE_URL + '/upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -154,7 +154,7 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
 
     const token = sessionStorage.getItem('vanguard_admin_token');
 
-    fetch('http://localhost:5000/api/vehicles', {
+    fetch(window.API_BASE_URL + '/vehicles', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -207,7 +207,7 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
 
     try {
       const uploadPromises = newEditImages.map(imgBase64 => {
-        return fetch('http://localhost:5000/api/upload', {
+        return fetch(window.API_BASE_URL + '/upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -247,7 +247,7 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
 
     const token = sessionStorage.getItem('vanguard_admin_token');
 
-    fetch(`http://localhost:5000/api/vehicles/${editVehicleId}`, {
+    fetch(`${window.API_BASE_URL}/vehicles/${editVehicleId}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',
@@ -275,7 +275,7 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
   const handleStatusChange = (id, newStatus) => {
     const token = sessionStorage.getItem('vanguard_admin_token');
 
-    fetch(`http://localhost:5000/api/vehicles/${id}`, {
+    fetch(`${window.API_BASE_URL}/vehicles/${id}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',
@@ -297,7 +297,7 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
 
     const token = sessionStorage.getItem('vanguard_admin_token');
 
-    fetch(`http://localhost:5000/api/vehicles/${id}`, {
+    fetch(`${window.API_BASE_URL}/vehicles/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`

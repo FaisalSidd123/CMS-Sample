@@ -15,7 +15,7 @@ export default function AdminImports() {
 
   const fetchImportLogs = () => {
     setIsLoading(true);
-    fetch('http://localhost:5000/api/imports')
+    fetch(window.API_BASE_URL + '/imports')
       .then(res => res.json())
       .then(json => {
         if (json.success) {
@@ -52,7 +52,7 @@ export default function AdminImports() {
 
     // 1. Post vehicles to database
     const vehiclePromises = bulkUploadedData.map(car => {
-      return fetch('http://localhost:5000/api/vehicles', {
+      return fetch(window.API_BASE_URL + '/vehicles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -78,7 +78,7 @@ export default function AdminImports() {
       .then(results => {
         const successes = results.filter(r => r.success).length;
         
-        fetch('http://localhost:5000/api/imports', {
+        fetch(window.API_BASE_URL + '/imports', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

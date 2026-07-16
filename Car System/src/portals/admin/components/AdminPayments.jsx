@@ -23,9 +23,9 @@ export default function AdminPayments() {
   const fetchAllocationsAndReservations = () => {
     setIsLoading(true);
     // 1. Fetch active reservations
-    const fetchRes = fetch('http://localhost:5000/api/reservations').then(r => r.json());
+    const fetchRes = fetch(window.API_BASE_URL + '/reservations').then(r => r.json());
     // 2. Fetch past payment ledger records
-    const fetchPay = fetch('http://localhost:5000/api/payments').then(r => r.json());
+    const fetchPay = fetch(window.API_BASE_URL + '/payments').then(r => r.json());
 
     Promise.all([fetchRes, fetchPay])
       .then(([resJson, payJson]) => {
@@ -78,7 +78,7 @@ export default function AdminPayments() {
 
     const token = sessionStorage.getItem('vanguard_admin_token');
 
-    fetch('http://localhost:5000/api/payments', {
+    fetch(window.API_BASE_URL + '/payments', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -92,7 +92,7 @@ export default function AdminPayments() {
           triggerToast(`Payment allocated. Vehicle marked as SOLD.`);
           
           // Also set the reservation status to confirmed/completed (i.e. released/settled)
-          fetch(`http://localhost:5000/api/reservations/${selectedRes.id}`, {
+          fetch(`${window.API_BASE_URL}/reservations/${selectedRes.id}`, {
             method: 'PUT',
             headers: { 
               'Content-Type': 'application/json',

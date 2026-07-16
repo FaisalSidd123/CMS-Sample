@@ -166,7 +166,7 @@ export default function App() {
 
   // Synchronize vehicles catalog from Supabase database
   useEffect(() => {
-    fetch('http://localhost:5000/api/vehicles')
+    fetch(window.API_BASE_URL + '/vehicles')
       .then(res => res.json())
       .then(json => {
         if (json.success && json.data) {

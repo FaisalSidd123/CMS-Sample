@@ -30,9 +30,9 @@ export default function AdminDocuments() {
 
   const fetchDependencies = () => {
     setIsLoading(true);
-    const fetchDocs = fetch('http://localhost:5000/api/documents').then(r => r.json());
-    const fetchLeads = fetch('http://localhost:5000/api/leads').then(r => r.json());
-    const fetchVehicles = fetch('http://localhost:5000/api/vehicles').then(r => r.json());
+    const fetchDocs = fetch(window.API_BASE_URL + '/documents').then(r => r.json());
+    const fetchLeads = fetch(window.API_BASE_URL + '/leads').then(r => r.json());
+    const fetchVehicles = fetch(window.API_BASE_URL + '/vehicles').then(r => r.json());
 
     Promise.all([fetchDocs, fetchLeads, fetchVehicles])
       .then(([docJson, leadJson, vehicleJson]) => {
@@ -106,7 +106,7 @@ export default function AdminDocuments() {
 
       try {
         // 1. Upload to Cloudinary via backend upload API
-        const uploadRes = await fetch('http://localhost:5000/api/upload', {
+        const uploadRes = await fetch(window.API_BASE_URL + '/upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -134,7 +134,7 @@ export default function AdminDocuments() {
 
         const token = sessionStorage.getItem('vanguard_admin_token');
 
-        const dbRes = await fetch('http://localhost:5000/api/documents', {
+        const dbRes = await fetch(window.API_BASE_URL + '/documents', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',

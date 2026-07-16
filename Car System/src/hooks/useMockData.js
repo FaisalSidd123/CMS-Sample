@@ -37,8 +37,8 @@ export function useMockData(category, id = null) {
 
     if (category === 'vehicles') {
       const url = id !== null 
-        ? `http://localhost:5000/api/vehicles/${id}`
-        : 'http://localhost:5000/api/vehicles';
+        ? `${window.API_BASE_URL}/vehicles/${id}`
+        : window.API_BASE_URL + '/vehicles';
       
       fetch(url)
         .then(res => {

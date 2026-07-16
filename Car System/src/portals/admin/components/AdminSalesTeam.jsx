@@ -21,7 +21,7 @@ export default function AdminSalesTeam() {
 
   const fetchAgents = () => {
     setIsLoading(true);
-    fetch('http://localhost:5000/api/agents')
+    fetch(window.API_BASE_URL + '/agents')
       .then(res => res.json())
       .then(json => {
         if (json.success) {
@@ -43,7 +43,7 @@ export default function AdminSalesTeam() {
     e.preventDefault();
     const token = sessionStorage.getItem('vanguard_admin_token');
 
-    fetch('http://localhost:5000/api/agents', {
+    fetch(window.API_BASE_URL + '/agents', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -74,7 +74,7 @@ export default function AdminSalesTeam() {
     const nextStatus = currentStatus === 'active' ? 'inactive' : 'active';
     const token = sessionStorage.getItem('vanguard_admin_token');
 
-    fetch(`http://localhost:5000/api/agents/${agentId}`, {
+    fetch(`${window.API_BASE_URL}/agents/${agentId}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',

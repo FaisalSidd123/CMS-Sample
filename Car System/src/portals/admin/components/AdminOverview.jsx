@@ -20,11 +20,11 @@ export default function AdminOverview() {
 
   useEffect(() => {
     setIsLoading(true);
-    const fetchVehicles = fetch('http://localhost:5000/api/vehicles').then(r => r.json());
-    const fetchLeads = fetch('http://localhost:5000/api/leads').then(r => r.json());
-    const fetchReservations = fetch('http://localhost:5000/api/reservations').then(r => r.json());
-    const fetchAgents = fetch('http://localhost:5000/api/agents').then(r => r.json());
-    const fetchPayments = fetch('http://localhost:5000/api/payments').then(r => r.json());
+    const fetchVehicles = fetch(window.API_BASE_URL + '/vehicles').then(r => r.json());
+    const fetchLeads = fetch(window.API_BASE_URL + '/leads').then(r => r.json());
+    const fetchReservations = fetch(window.API_BASE_URL + '/reservations').then(r => r.json());
+    const fetchAgents = fetch(window.API_BASE_URL + '/agents').then(r => r.json());
+    const fetchPayments = fetch(window.API_BASE_URL + '/payments').then(r => r.json());
 
     Promise.all([fetchVehicles, fetchLeads, fetchReservations, fetchAgents, fetchPayments])
       .then(([vJson, lJson, resJson, aJson, pJson]) => {

@@ -23,7 +23,7 @@ export default function AdminService({ sharedVehicles = [] }) {
 
   const fetchServiceRecords = () => {
     setIsLoading(true);
-    fetch('http://localhost:5000/api/service')
+    fetch(window.API_BASE_URL + '/service')
       .then(res => res.json())
       .then(json => {
         if (json.success) {
@@ -40,7 +40,7 @@ export default function AdminService({ sharedVehicles = [] }) {
   useEffect(() => {
     fetchServiceRecords();
     if (sharedVehicles.length === 0) {
-      fetch('http://localhost:5000/api/vehicles')
+      fetch(window.API_BASE_URL + '/vehicles')
         .then(res => res.json())
         .then(json => {
           if (json.success) setVehicles(json.data);
@@ -52,7 +52,7 @@ export default function AdminService({ sharedVehicles = [] }) {
     e.preventDefault();
     const token = sessionStorage.getItem('vanguard_admin_token');
 
-    fetch('http://localhost:5000/api/service', {
+    fetch(window.API_BASE_URL + '/service', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ export default function AdminService({ sharedVehicles = [] }) {
       body.completed_date = new Date().toISOString();
     }
 
-    fetch(`http://localhost:5000/api/service/${recordId}`, {
+    fetch(`${window.API_BASE_URL}/service/${recordId}`, {
       method: 'PUT',
       headers: { 
         'Content-Type': 'application/json',

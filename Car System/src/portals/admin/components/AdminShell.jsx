@@ -37,7 +37,7 @@ export default function AdminShell({
   const activeAdmin = adminUsers[0]; // Chief Executive Operator
 
   const fetchCounts = () => {
-    fetch('http://localhost:5000/api/vehicles')
+    fetch(window.API_BASE_URL + '/vehicles')
       .then(res => res.json())
       .then(json => {
         if (json.success && json.data) {
