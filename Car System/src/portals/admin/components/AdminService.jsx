@@ -50,9 +50,14 @@ export default function AdminService({ sharedVehicles = [] }) {
 
   const handleAddService = (e) => {
     e.preventDefault();
+    const token = sessionStorage.getItem('vanguard_admin_token');
+
     fetch('http://localhost:5000/api/service', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({
         vehicle_id: parseInt(vehicleId),
         description,
@@ -73,6 +78,7 @@ export default function AdminService({ sharedVehicles = [] }) {
   };
 
   const handleUpdateStatus = (recordId, nextStatus) => {
+    const token = sessionStorage.getItem('vanguard_admin_token');
     const body = { status: nextStatus };
     if (nextStatus === 'completed') {
       body.completed_date = new Date().toISOString();
@@ -80,7 +86,10 @@ export default function AdminService({ sharedVehicles = [] }) {
 
     fetch(`http://localhost:5000/api/service/${recordId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(body)
     })
       .then(res => res.json())

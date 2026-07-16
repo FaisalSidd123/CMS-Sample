@@ -3,28 +3,58 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
 
-export default function Login() {
+export default function Login({ defaultRole = 'client' }) {
   const navigate = useNavigate();
-  const [role, setRole] = useState('client'); // 'client' / 'agent' / 'admin'
-  const [email, setEmail] = useState('alexander@vanguard.com');
+  const [role, setRole] = useState(defaultRole);
+  const [email, setEmail] = useState(
+    defaultRole === 'admin' 
+      ? 'admin@vanguard.com' 
+      : defaultRole === 'agent' 
+        ? 'sarah.connor@vanguardmotors.com' 
+        : 'alexander@vanguard.com'
+  );
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setIsSubmitting(false);
+    setErrorMsg('');
+
     setIsSubmitting(true);
 
-    // Simulate authentication processing latency
-    setTimeout(() => {
-      setIsSubmitting(false);
-      if (role === 'agent') {
-        navigate('/agent');
-      } else if (role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/portal');
-      }
-    }, 800);
+    fetch('http://localhost:5000/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    })
+      .then(res => res.json())
+      .then(json => {
+        setIsSubmitting(false);
+        if (json.success && json.token) {
+          // Store token in session storage based on role
+          if (json.user.role === 'admin') {
+            sessionStorage.setItem('vanguard_admin_token', json.token);
+            sessionStorage.setItem('vanguard_admin_user', JSON.stringify(json.user));
+            navigate('/admin');
+          } else if (json.user.role === 'agent') {
+            sessionStorage.setItem('vanguard_agent_token', json.token);
+            sessionStorage.setItem('vanguard_agent_user', JSON.stringify(json.user));
+            navigate('/agent');
+          } else {
+            sessionStorage.setItem('vanguard_client_token', json.token);
+            sessionStorage.setItem('vanguard_client_user', JSON.stringify(json.user));
+            navigate('/portal');
+          }
+        } else {
+          setErrorMsg(json.error || 'Authentication failed. Please verify credentials.');
+        }
+      })
+      .catch(err => {
+        setIsSubmitting(false);
+        setErrorMsg('Network error. Unable to establish authentication connection.');
+      });
   };
 
   return (
@@ -93,52 +123,50 @@ export default function Login() {
               Vanguard <span className="text-brand-red">Motors</span>
             </Link>
             <h2 className="text-xl font-display font-extrabold uppercase text-charcoal tracking-wide mt-2">
-              Workspace Access
+              {defaultRole === 'admin' ? 'Master Admin Access' : 'Workspace Access'}
             </h2>
             <p className="text-xs text-neutral-400 font-sans">
-              Authenticate details to enter your sandbox account.
+              {defaultRole === 'admin' 
+                ? 'Authenticate credentials to enter the administrative control panel.' 
+                : 'Authenticate details to enter your sandbox account.'}
             </p>
           </div>
 
-          {/* Role selector tab */}
-          <div className="flex border-b border-neutral-100 gap-4 select-none pt-2 overflow-x-auto">
-            <button
-              type="button"
-              onClick={() => {
-                setRole('client');
-                setEmail('alexander@vanguard.com');
-              }}
-              className={`pb-2.5 text-xs font-display font-bold uppercase tracking-wider transition-colors cursor-pointer border-b-2 shrink-0 ${
-                role === 'client' ? 'border-brand-red text-brand-red' : 'border-transparent text-neutral-400 hover:text-charcoal'
-              }`}
-            >
-              Client Account
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setRole('agent');
-                setEmail('sarah.connor@vanguardmotors.com');
-              }}
-              className={`pb-2.5 text-xs font-display font-bold uppercase tracking-wider transition-colors cursor-pointer border-b-2 shrink-0 ${
-                role === 'agent' ? 'border-brand-red text-brand-red' : 'border-transparent text-neutral-400 hover:text-charcoal'
-              }`}
-            >
-              Sales Console
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setRole('admin');
-                setEmail('admin@vanguard.com');
-              }}
-              className={`pb-2.5 text-xs font-display font-bold uppercase tracking-wider transition-colors cursor-pointer border-b-2 shrink-0 ${
-                role === 'admin' ? 'border-brand-red text-brand-red' : 'border-transparent text-neutral-400 hover:text-charcoal'
-              }`}
-            >
-              Master Console
-            </button>
-          </div>
+          {/* Role selector tab (Only display Client/Agent to public, hide Admin. Hide selector entirely if loaded as /admin/login) */}
+          {defaultRole !== 'admin' && (
+            <div className="flex border-b border-neutral-100 gap-4 select-none pt-2 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setRole('client');
+                  setEmail('alexander@vanguard.com');
+                }}
+                className={`pb-2.5 text-xs font-display font-bold uppercase tracking-wider transition-colors cursor-pointer border-b-2 shrink-0 ${
+                  role === 'client' ? 'border-brand-red text-brand-red' : 'border-transparent text-neutral-400 hover:text-charcoal'
+                }`}
+              >
+                Client Account
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRole('agent');
+                  setEmail('sarah.connor@vanguardmotors.com');
+                }}
+                className={`pb-2.5 text-xs font-display font-bold uppercase tracking-wider transition-colors cursor-pointer border-b-2 shrink-0 ${
+                  role === 'agent' ? 'border-brand-red text-brand-red' : 'border-transparent text-neutral-400 hover:text-charcoal'
+                }`}
+              >
+                Sales Console
+              </button>
+            </div>
+          )}
+
+          {errorMsg && (
+            <div className="p-3 bg-red-50 border border-red-100 text-[10px] font-mono text-red-600 uppercase tracking-wider font-semibold rounded-xs">
+              ⚠️ {errorMsg}
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -189,7 +217,7 @@ export default function Login() {
                 className="w-4.5 h-4.5 border border-border-hairline text-brand-red focus:ring-brand-red cursor-pointer"
               />
               <label htmlFor="remember" className="text-[10px] text-neutral-500 uppercase font-semibold font-mono tracking-wider cursor-pointer select-none">
-                Remember authentication node
+                Remember credentials
               </label>
             </div>
 
@@ -199,26 +227,11 @@ export default function Login() {
               disabled={isSubmitting}
               className="w-full bg-brand-red hover:bg-brand-red-hover text-white text-xs font-bold uppercase tracking-widest py-4 mt-2 flex items-center justify-center gap-2 cursor-pointer transition-all duration-300 shadow-sm disabled:opacity-50"
             >
-              {isSubmitting ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Validating credentials...</span>
-                </>
-              ) : (
-                <>
-                  <span>Sign In to Portal</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
+              <span>{isSubmitting ? 'Authenticating...' : 'Establish Session'}</span>
+              <ArrowRight className="w-4 h-4 shrink-0" />
             </button>
 
           </form>
-
-          {/* Quick Sandbox Tip */}
-          <div className="bg-light-bg border border-border-hairline p-3 text-[10px] text-neutral-500 font-sans leading-relaxed">
-            <span className="font-semibold text-charcoal block mb-0.5">Sandbox Mode Active</span>
-            Form validation accepts any input value. Submit credentials to enter the customer portal.
-          </div>
 
         </div>
 

@@ -149,9 +149,14 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
       images: uploadedUrls.length > 0 ? uploadedUrls : [thumbnail]
     };
 
+    const token = sessionStorage.getItem('vanguard_admin_token');
+
     fetch('http://localhost:5000/api/vehicles', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(newVehicleData)
     })
       .then(res => res.json())
@@ -164,12 +169,12 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
           setSelectedImages([]);
           triggerToast(`Added vehicle: ${make} ${model} to database.`);
         } else {
-          triggerToast(`Failed to add vehicle: ${json.error || 'Server error'}`);
+          triggerToast(`Failed to register vehicle: ${json.error}`);
         }
       })
       .catch(err => {
         setIsUploading(false);
-        triggerToast('Failed to add vehicle: Server connection error');
+        triggerToast('Failed to connect to backend server catalog.');
       });
   };
 
@@ -177,9 +182,9 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
     setEditVehicleId(v.id);
     setEditMake(v.make);
     setEditModel(v.model);
-    setEditYear(v.year);
-    setEditPrice(v.price.toString().replace(/[^0-9]/g, ''));
-    setEditMileage(v.mileage.toString().replace(/[^0-9]/g, ''));
+    setEditYear(v.year.toString());
+    setEditPrice(v.price ? v.price.toString().replace(/[^0-9]/g, '') : '');
+    setEditMileage(v.mileage ? v.mileage.toString().replace(/[^0-9]/g, '') : '');
     setEditBodyType(v.bodyType || 'Coupe');
     setEditColor(v.color || '');
     setEditLocation(v.location || '');
@@ -234,9 +239,14 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
       images: mergedImages
     };
 
+    const token = sessionStorage.getItem('vanguard_admin_token');
+
     fetch(`http://localhost:5000/api/vehicles/${editVehicleId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(updatedVehicleData)
     })
       .then(res => res.json())
@@ -257,9 +267,14 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
   };
 
   const handleStatusChange = (id, newStatus) => {
+    const token = sessionStorage.getItem('vanguard_admin_token');
+
     fetch(`http://localhost:5000/api/vehicles/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ status: newStatus })
     })
       .then(res => res.json())
@@ -274,8 +289,13 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
   const handleDelete = (id) => {
     if (!window.confirm('Delete this vehicle from registry inventory?')) return;
 
+    const token = sessionStorage.getItem('vanguard_admin_token');
+
     fetch(`http://localhost:5000/api/vehicles/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     })
       .then(res => res.json())
       .then(json => {

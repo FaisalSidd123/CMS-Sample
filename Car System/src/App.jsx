@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -139,6 +139,14 @@ function Footer() {
       </div>
     </footer>
   );
+}
+
+function AdminRouteGuard({ children }) {
+  const token = sessionStorage.getItem('vanguard_admin_token');
+  if (!token) {
+    return <Navigate to="/admin/login" replace />;
+  }
+  return children;
 }
 
 export default function App() {
@@ -299,6 +307,10 @@ export default function App() {
           path="/login"
           element={<Login />}
         />
+        <Route
+          path="/admin/login"
+          element={<Login defaultRole="admin" />}
+        />
 
         {/* D. PRIVATE SALES AGENT PORTAL */}
         <Route
@@ -319,22 +331,24 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            <AdminDashboardPage
-              sharedVehicles={vehiclesList}
-              onUpdateVehicles={setVehiclesList}
-              sharedClients={clientsList}
-              onUpdateClients={setClientsList}
-              sharedAgents={agentsList}
-              onUpdateAgents={setAgentsList}
-              sharedReservations={reservationsList}
-              sharedActivities={activitiesList}
-              sharedInvoices={invoicesList}
-              onUpdateInvoices={setInvoicesList}
-              sharedDocs={docsList}
-              onUpdateDocs={setDocsList}
-              sharedAudit={adminAuditList}
-              onUpdateAudit={setAdminAuditList}
-            />
+            <AdminRouteGuard>
+              <AdminDashboardPage
+                sharedVehicles={vehiclesList}
+                onUpdateVehicles={setVehiclesList}
+                sharedClients={clientsList}
+                onUpdateClients={setClientsList}
+                sharedAgents={agentsList}
+                onUpdateAgents={setAgentsList}
+                sharedReservations={reservationsList}
+                sharedActivities={activitiesList}
+                sharedInvoices={invoicesList}
+                onUpdateInvoices={setInvoicesList}
+                sharedDocs={docsList}
+                onUpdateDocs={setDocsList}
+                sharedAudit={adminAuditList}
+                onUpdateAudit={setAdminAuditList}
+              />
+            </AdminRouteGuard>
           }
         />
 

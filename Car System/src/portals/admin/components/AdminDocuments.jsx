@@ -132,9 +132,14 @@ export default function AdminDocuments() {
           status: 'completed'
         };
 
+        const token = sessionStorage.getItem('vanguard_admin_token');
+
         const dbRes = await fetch('http://localhost:5000/api/documents', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify(payload)
         }).then(r => r.json());
 

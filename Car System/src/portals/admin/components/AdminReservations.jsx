@@ -74,9 +74,14 @@ export default function AdminReservations() {
       invoice: null
     };
 
+    const token = sessionStorage.getItem('vanguard_admin_token');
+
     fetch('http://localhost:5000/api/reservations', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(payload)
     })
       .then(res => res.json())
@@ -100,9 +105,14 @@ export default function AdminReservations() {
       return;
     }
 
+    const token = sessionStorage.getItem('vanguard_admin_token');
+
     fetch(`http://localhost:5000/api/reservations/${resId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ status: nextStatus, cancellation_reason: null })
     })
       .then(res => res.json())
@@ -118,9 +128,14 @@ export default function AdminReservations() {
     e.preventDefault();
     if (!cancelResId || !cancelReasonText) return;
 
+    const token = sessionStorage.getItem('vanguard_admin_token');
+
     fetch(`http://localhost:5000/api/reservations/${cancelResId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ status: 'cancelled', cancellation_reason: cancelReasonText })
     })
       .then(res => res.json())
@@ -226,17 +241,25 @@ export default function AdminReservations() {
 
         const secureUrl = uploadRes.url;
 
+        const token = sessionStorage.getItem('vanguard_admin_token');
+
         // 2. Save this URL to the reservations table invoice column
         const updateRes = fetch(`http://localhost:5000/api/reservations/${res.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ invoice: secureUrl })
         }).then(r => r.json());
 
         // 3. Also log it inside the documents table under 'invoice' type
         const createDoc = fetch('http://localhost:5000/api/documents', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({
             title: `Vanguard_Invoice_${invoiceId}.pdf`,
             document_type: 'invoice',

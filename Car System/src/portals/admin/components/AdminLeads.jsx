@@ -64,9 +64,14 @@ export default function AdminLeads({ sharedAgents = [] }) {
 
   const handleAddLead = (e) => {
     e.preventDefault();
+    const token = sessionStorage.getItem('vanguard_admin_token') || sessionStorage.getItem('vanguard_agent_token');
+
     fetch('http://localhost:5000/api/leads', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({
         name,
         email,
@@ -92,9 +97,14 @@ export default function AdminLeads({ sharedAgents = [] }) {
   };
 
   const handleUpdateStatus = (leadId, nextStatus) => {
+    const token = sessionStorage.getItem('vanguard_admin_token') || sessionStorage.getItem('vanguard_agent_token');
+
     fetch(`http://localhost:5000/api/leads/${leadId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ status: nextStatus })
     })
       .then(res => res.json())
@@ -107,9 +117,14 @@ export default function AdminLeads({ sharedAgents = [] }) {
   };
 
   const handleReassignAgent = (leadId, newAgentId) => {
+    const token = sessionStorage.getItem('vanguard_admin_token') || sessionStorage.getItem('vanguard_agent_token');
+
     fetch(`http://localhost:5000/api/leads/${leadId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ assigned_agent_id: newAgentId ? parseInt(newAgentId) : null })
     })
       .then(res => res.json())
