@@ -6,7 +6,6 @@ import AdminLeads from './components/AdminLeads';
 import AdminReservations from './components/AdminReservations';
 import AdminImports from './components/AdminImports';
 import AdminPayments from './components/AdminPayments';
-import AdminService from './components/AdminService';
 import AdminSalesTeam from './components/AdminSalesTeam';
 import AdminDocuments from './components/AdminDocuments';
 
@@ -47,8 +46,6 @@ export default function AdminDashboardPage({
         return <AdminReservations />;
       case 'payments':
         return <AdminPayments />;
-      case 'service':
-        return <AdminService sharedVehicles={sharedVehicles} />;
       case 'salesteam':
         return <AdminSalesTeam />;
       case 'documents':
