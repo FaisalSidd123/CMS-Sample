@@ -13,9 +13,9 @@ import {
   FileText 
 } from 'lucide-react';
 
-export default function AdminLeads({ sharedAgents = [] }) {
+export default function AdminLeads() {
   const [leads, setLeads] = useState([]);
-  const [agents, setAgents] = useState(sharedAgents);
+  const [agents, setAgents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -51,16 +51,19 @@ export default function AdminLeads({ sharedAgents = [] }) {
       });
   };
 
+  const fetchAgents = () => {
+    fetch('http://localhost:5000/api/agents')
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) setAgents(json.data);
+      })
+      .catch(err => console.error('Failed to fetch agents:', err));
+  };
+
   useEffect(() => {
     fetchLeads();
-    if (sharedAgents.length === 0) {
-      fetch('http://localhost:5000/api/agents')
-        .then(res => res.json())
-        .then(json => {
-          if (json.success) setAgents(json.data);
-        });
-    }
-  }, [sharedAgents]);
+    fetchAgents();
+  }, []);
 
   const handleAddLead = (e) => {
     e.preventDefault();
