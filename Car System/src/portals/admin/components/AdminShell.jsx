@@ -64,7 +64,6 @@ export default function AdminShell({
     { label: 'Leads', id: 'leads', icon: Users, badge: 9 },
     { label: 'Reservations', id: 'reservations', icon: CalendarRange },
     { label: 'Payments', id: 'payments', icon: DollarSign, badge: 6 },
-    { label: 'Service', id: 'service', icon: Wrench, badge: 6 },
     { label: 'Sales Team', id: 'salesteam', icon: UserCheck },
     { label: 'Documents', id: 'documents', icon: FolderOpen }
   ];
