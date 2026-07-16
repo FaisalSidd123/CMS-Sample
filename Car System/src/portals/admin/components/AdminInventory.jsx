@@ -24,6 +24,7 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
   const [model, setModel] = useState('');
   const [year, setYear] = useState('2024');
   const [price, setPrice] = useState('');
+  const [basePrice, setBasePrice] = useState('');
   const [mileage, setMileage] = useState('');
   const [bodyType, setBodyType] = useState('Coupe');
   const [color, setColor] = useState('');
@@ -39,6 +40,7 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
   const [editModel, setEditModel] = useState('');
   const [editYear, setEditYear] = useState('');
   const [editPrice, setEditPrice] = useState('');
+  const [editBasePrice, setEditBasePrice] = useState('');
   const [editMileage, setEditMileage] = useState('');
   const [editBodyType, setEditBodyType] = useState('Coupe');
   const [editColor, setEditColor] = useState('');
@@ -138,6 +140,7 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
       model,
       year: parseInt(year),
       price: parseInt(price),
+      basePrice: parseInt(basePrice) || 0,
       mileage: parseInt(mileage),
       bodyType,
       color,
@@ -165,7 +168,7 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
         if (json.success && json.data) {
           setVehicles([json.data, ...vehicles]);
           setShowAddForm(false);
-          setMake(''); setModel(''); setPrice(''); setMileage(''); setColor(''); setLocation(''); setSpecs(''); setConditionNotes('');
+          setMake(''); setModel(''); setPrice(''); setBasePrice(''); setMileage(''); setColor(''); setLocation(''); setSpecs(''); setConditionNotes('');
           setSelectedImages([]);
           triggerToast(`Added vehicle: ${make} ${model} to database.`);
         } else {
@@ -184,6 +187,7 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
     setEditModel(v.model);
     setEditYear(v.year.toString());
     setEditPrice(v.price ? v.price.toString().replace(/[^0-9]/g, '') : '');
+    setEditBasePrice(v.basePrice ? v.basePrice.toString().replace(/[^0-9]/g, '') : '');
     setEditMileage(v.mileage ? v.mileage.toString().replace(/[^0-9]/g, '') : '');
     setEditBodyType(v.bodyType || 'Coupe');
     setEditColor(v.color || '');
@@ -222,6 +226,7 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
 
     const mergedImages = [...existingImages, ...uploadedUrls];
     const finalPrice = `$${Number(editPrice).toLocaleString()}`;
+    const finalBasePrice = `$${Number(editBasePrice).toLocaleString()}`;
     const finalMileage = `${Number(editMileage).toLocaleString()} mi`;
 
     const updatedVehicleData = {
@@ -229,6 +234,7 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
       model: editModel,
       year: parseInt(editYear),
       price: finalPrice,
+      basePrice: finalBasePrice,
       mileage: finalMileage,
       bodyType: editBodyType,
       color: editColor,
@@ -388,8 +394,13 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Price ($ USD)</label>
+              <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Display Price ($ USD)</label>
               <input required type="number" placeholder="e.g. 112000" value={price} onChange={(e) => setPrice(e.target.value)} className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red" />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Wholesale Base Price ($ USD)</label>
+              <input required type="number" placeholder="e.g. 98000" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red" />
             </div>
 
             <div className="flex flex-col gap-1">
@@ -479,8 +490,12 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
                 <input required type="number" value={editYear} onChange={e => setEditYear(e.target.value)} className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red" />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Price ($ USD)</label>
+                <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Display Price ($ USD)</label>
                 <input required type="number" value={editPrice} onChange={e => setEditPrice(e.target.value)} className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Wholesale Base Price ($ USD)</label>
+                <input required type="number" value={editBasePrice} onChange={e => setEditBasePrice(e.target.value)} className="bg-light-bg border border-border-hairline px-3 py-2 text-xs text-charcoal outline-hidden focus:border-brand-red" />
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-[8px] font-mono uppercase tracking-wider text-neutral-400 font-semibold">Mileage (Miles)</label>
@@ -598,8 +613,15 @@ export default function AdminInventory({ inventoryFilter = 'all' }) {
                         </td>
 
                       {/* Price */}
-                      <td className="py-4 px-6 font-display font-bold text-brand-red text-xs">
-                        {v.price}
+                      <td className="py-4 px-6">
+                        <span className="font-display font-bold text-brand-red text-xs block">
+                          {v.price}
+                        </span>
+                        {v.basePrice && (
+                          <span className="text-[9px] font-mono text-neutral-400 block mt-0.5 font-medium uppercase">
+                            Base: {v.basePrice}
+                          </span>
+                        )}
                       </td>
 
                       {/* Mileage */}

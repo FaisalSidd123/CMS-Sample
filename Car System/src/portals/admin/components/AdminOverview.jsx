@@ -53,6 +53,22 @@ export default function AdminOverview() {
     .filter(p => p.payment_status === 'completed')
     .reduce((sum, p) => sum + parseFloat(p.amount), 0);
 
+  // Calculate Net Dealer Profit: final payment price - vehicle wholesale base price
+  const totalProfitVal = payments
+    .filter(p => p.payment_status === 'completed')
+    .reduce((sum, p) => {
+      const vehicle = vehicles.find(v => v.id === p.vehicle_id);
+      if (vehicle) {
+        const salePrice = parseFloat(p.amount) || 0;
+        const rawBase = vehicle.basePrice || vehicle.base_price || 0;
+        const basePrice = typeof rawBase === 'number'
+          ? rawBase
+          : parseFloat(rawBase.toString().replace(/[$,]/g, '')) || 0;
+        return sum + (salePrice - basePrice);
+      }
+      return sum;
+    }, 0);
+
   // Group performance metrics dynamically: map payments to their respective assigned agents via reservations/leads
   const agentPerformance = agents.map(agent => {
     // Find all won leads or reservations matching this agent's ID
@@ -134,11 +150,20 @@ export default function AdminOverview() {
         </div>
 
         {/* KPI: Total Revenue */}
-        <div className="bg-white border border-border-hairline p-4 flex flex-col justify-between h-20 shadow-xs lg:col-span-2">
+        <div className="bg-white border border-border-hairline p-4 flex flex-col justify-between h-20 shadow-xs">
           <span className="text-[8px] font-mono text-neutral-400 uppercase tracking-widest block font-semibold">Total sales value</span>
           <div className="flex justify-between items-baseline">
             <span className="text-xl font-display font-black text-brand-red">${totalSalesVal.toLocaleString()}</span>
-            <DollarSign className="w-4 h-4 text-brand-red" />
+            <DollarSign className="w-3.5 h-3.5 text-brand-red" />
+          </div>
+        </div>
+
+        {/* KPI: Net Profit */}
+        <div className="bg-white border border-border-hairline p-4 flex flex-col justify-between h-20 shadow-xs">
+          <span className="text-[8px] font-mono text-neutral-400 uppercase tracking-widest block font-semibold">Dealer Net Profit</span>
+          <div className="flex justify-between items-baseline">
+            <span className="text-xl font-display font-black text-emerald-600">${totalProfitVal.toLocaleString()}</span>
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
           </div>
         </div>
 

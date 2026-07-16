@@ -419,9 +419,16 @@ export default function AdminReservations() {
                         {res.leads?.email}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 font-mono font-bold text-neutral-500">
-                      ${Number(res.deposit_amount).toLocaleString()}
-                    </td>
+                    <td className="py-3.5 px-4 text-left">
+                       <span className="font-mono font-bold text-neutral-600 block">
+                         ${Number(res.deposit_amount).toLocaleString()}
+                       </span>
+                       {res.vehicles?.base_price !== undefined && res.vehicles?.base_price !== null && (
+                         <span className="text-[9px] font-mono text-emerald-600 block mt-0.5 uppercase font-medium">
+                           Profit: ${Number(parseFloat(res.deposit_amount) - parseFloat(res.vehicles.base_price)).toLocaleString()}
+                         </span>
+                       )}
+                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex flex-col">
                         <span className="font-mono text-neutral-600">
