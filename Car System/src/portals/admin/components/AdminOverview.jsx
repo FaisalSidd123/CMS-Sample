@@ -119,12 +119,12 @@ export default function AdminOverview() {
       
       {/* Welcome header */}
       <div>
-        <span className="text-[9px] font-mono text-brand-red uppercase tracking-widest block mb-0.5">// Operations Center</span>
+        <span className="text-[9px] font-mono text-brand-red uppercase tracking-widest block mb-0.5">// Metrics & Analytics</span>
         <h2 className="text-xl md:text-2xl font-display font-extrabold text-charcoal uppercase leading-none">
-          Command Center Overview
+          Dealership Operations Dashboard
         </h2>
         <p className="text-[11px] text-neutral-400 font-sans mt-1">
-          Real-time database metrics, agent sales performance leaders, and administrative audit trails.
+          Real-time performance figures, wholesale-to-retail profit margins, and administrative operational metrics.
         </p>
       </div>
 
